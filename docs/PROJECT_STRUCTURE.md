@@ -1,9 +1,9 @@
 # Project structure
 
-- `app/`: Laravel application code; later organize by conventional models, policies, actions, and Livewire components as needed.
+- `app/`: conventional models/policies, habit type/visibility enums, shared habit form validation, transactional `Actions/Habits/SaveHabit`, and a deterministic category recommender. No repository or parallel domain layer.
 - `bootstrap/`, `config/`, `public/`, `routes/`, `storage/`: standard Laravel runtime/configuration boundaries.
-- `database/`: migrations, factories, and seeders; framework/auth schema plus the Phase 1 user-profile extension.
-- `resources/`: Blade/Livewire views, CSS, and JavaScript.
+- `database/`: framework/auth and profile schema plus Phase 2 categories, aliases, habits, and checkpoint configuration; factories and the dedicated idempotent category seeder.
+- `resources/`: Blade/Livewire single-file pages for dashboard, settings, categories, and habit list/configuration/detail; CSS and JavaScript.
 - `tests/`: PHPUnit feature and unit tests.
 - `docs/`: product, architecture, workflow, ADRs, and reusable templates.
 - `compose.yaml`: MySQL-only local development service.

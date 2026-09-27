@@ -2,9 +2,9 @@
 
 A mobile-first personal habit tracker for building positive habits and reducing unwanted ones, using a terminal-inspired visual language without terminal-style interaction.
 
-**Stack:** Laravel 13, Livewire 4 (including Alpine.js), Tailwind CSS 4, Vite 7, MySQL 8.4, and PHPUnit. **Phase 0 — Project Foundation** and **Phase 1 — Profile + Theme Foundation** are complete for their current scope. Phase 2 has not started. See [the closeout report](docs/PHASE_1_CLOSEOUT.md) for verification results and limits.
+**Stack:** Laravel 13, Livewire 4 (including Alpine.js), Tailwind CSS 4, Vite 7, MySQL 8.4, and PHPUnit. **Phases 0–2** are complete for their current scope; Phase 3 daily tracking has not started. See [the Phase 2 closeout](docs/PHASE_2_CLOSEOUT.md) for implementation, verification, and remaining limits, and [the plan](docs/PHASE_2_PLAN.md) for scope decisions.
 
-Authenticated users can edit their username, display name, bio, account privacy, and Terminal Green theme preference at `/settings/profile`. The shell includes desktop/mobile navigation and a greeting using the preferred display name. Habits, journals, analytics, and followers belong to later phases.
+Authenticated users can edit their profile at `/settings/profile`, explore system/personal categories at `/categories`, and manage their habit configurations at `/habits`. All five habit types support configuration, with private defaults and owner-only access. Archive, trash, and restore preserve configuration. Permanent deletion/automatic expiry are deferred; daily tracking, journals, analytics, and sharing belong to later phases.
 
 Development tooling runs natively in Ubuntu under WSL; keep the repository on the Linux filesystem. MySQL alone runs in Docker Desktop via WSL integration.
 
@@ -19,9 +19,12 @@ cp .env.example .env
 php artisan key:generate
 docker compose up -d --wait
 php artisan migrate
+php artisan db:seed --class=CategorySeeder
 ```
 
 Run tests with `php artisan test`, format PHP with `./vendor/bin/pint`, and build assets with `npm run build`. Development and test data use separate `habit_log` and `habit_log_test` databases.
+
+For a local test login, run `php artisan db:seed --class=TestAccountSeeder`, then sign in at `/login` with **test@example.com** / **password**. The account is created only in local/testing environments. Repeated seeding preserves an existing account, including its password and profile. `php artisan db:seed` also includes this account alongside system categories.
 
 See `docs/PROJECT_COMMANDS.md` for the complete verified command reference.
 

@@ -17,3 +17,15 @@ Account privacy is a stored preference until followers are implemented. Help tex
 Terminal Green stays dark regardless of system light/dark preference. The desktop account menu uses Flux keyboard navigation and returns focus to its trigger on Escape. Mobile navigation and save feedback respect reduced-motion preferences; save feedback is a status announcement.
 
 Before closing Phase 1, exercise authentication, profile saving/reloading, validation feedback, mobile navigation, logout, and keyboard focus in a browser. Broader accessibility and performance reviews remain in Phase 7.
+
+## Phase 2 interface
+
+Desktop/mobile navigation now includes Habits and Categories; the dashboard links to the habit list and creation form. Categories show system and personal options, with a two-step custom creation form: first review deterministic recommendations, then select an existing category or explicitly create your own. Personal category names, descriptions, and suggestions are owner-only. Category creation is a separate save; the habit form explains that leaving it discards unsaved form input.
+
+The habit list uses Active, Archived, and Trash controls, a category filter, stable newest-first ordering, and 20-row pagination. List rows show name, category, type, visibility preference, dates, and lifecycle state. Detail/edit pages are owner-only. Trashed habits have only a summary and Restore control in Trash; normal detail/edit routes exclude them.
+
+Create/edit forms configure one category, a name (100 characters), optional description (2,000), one of five types, optional goals/units where appropriate, required start date, optional end date on/after start, and a private-default visibility preference. Numeric goals are whole numbers up to 999,999,999; avoidance allows zero, count/duration require positive values when provided. Duration means minutes. Checkpoint habits require 1–20 distinct labels up to 80 characters, with ordinary Add/Remove/Up/Down buttons. Switching types clears incompatible settings on save and explains that effect in the form.
+
+Visibility choices are stored preferences: sharing is not available in Phase 2, and all management access is owner-only. Account privacy does not change the new-habit private default. Daily tracking and heatmaps remain future work.
+
+Archive/unarchive preserve configured dates; restore preserves the prior active/archived state. Moving to trash requires a named dialog with Cancel and Confirm controls. Escape cancels and restores focus; status messages announce successful changes. Trash has no automatic expiry or permanent-delete control. Dialogs respect reduced motion. Server-side validation provides field errors; output is escaped and literal `"0"` text is preserved.

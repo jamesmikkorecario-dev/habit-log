@@ -16,6 +16,10 @@ new #[Title('Dashboard')] class extends Component
         Welcome, {{ auth()->user()->displayName() }}
     </h1>
     <p class="mt-3 text-base text-zinc-400">
-        Your habits dashboard will appear here as features are added.
+        Make room for the habits that matter to you.
     </p>
+    <div class="mt-6 flex flex-wrap gap-3">
+        <flux:button :href="route('habits.index')" variant="primary" wire:navigate>Your habits</flux:button>
+        <flux:button :href="route('habits.create')" wire:navigate>Create a habit</flux:button>
+    </div>
 </div>
