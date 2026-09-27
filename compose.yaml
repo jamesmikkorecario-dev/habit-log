@@ -1,0 +1,27 @@
+name: habit-log
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: habit-log-mysql
+    restart: unless-stopped
+    ports:
+      - "${DB_FORWARD_PORT:-3306}:3306"
+    environment:
+      MYSQL_DATABASE: "${DB_DATABASE:-habit_log}"
+      MYSQL_USER: "${DB_USERNAME:-habit_log}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:-habit_log_local}"
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-habit_log_root_local}"
+      MYSQL_TEST_DATABASE: "${DB_TEST_DATABASE:-habit_log_test}"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+volumes:
+  mysql-data:
