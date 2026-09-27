@@ -2,7 +2,9 @@
 
 A mobile-first personal habit tracker for building positive habits and reducing unwanted ones, using a terminal-inspired visual language without terminal-style interaction.
 
-**Stack:** Laravel 13, Livewire 4 (including Alpine.js), Tailwind CSS 4, Vite 7, MySQL 8.4, and PHPUnit. **Phase 0 — Project Foundation** is complete. Phase 1 has not started.
+**Stack:** Laravel 13, Livewire 4 (including Alpine.js), Tailwind CSS 4, Vite 7, MySQL 8.4, and PHPUnit. **Phase 0 — Project Foundation** and **Phase 1 — Profile + Theme Foundation** are complete for their current scope. Phase 2 has not started. See [the closeout report](docs/PHASE_1_CLOSEOUT.md) for verification results and limits.
+
+Authenticated users can edit their username, display name, bio, account privacy, and Terminal Green theme preference at `/settings/profile`. The shell includes desktop/mobile navigation and a greeting using the preferred display name. Habits, journals, analytics, and followers belong to later phases.
 
 Development tooling runs natively in Ubuntu under WSL; keep the repository on the Linux filesystem. MySQL alone runs in Docker Desktop via WSL integration.
 

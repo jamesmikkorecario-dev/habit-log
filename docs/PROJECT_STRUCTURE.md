@@ -2,7 +2,7 @@
 
 - `app/`: Laravel application code; later organize by conventional models, policies, actions, and Livewire components as needed.
 - `bootstrap/`, `config/`, `public/`, `routes/`, `storage/`: standard Laravel runtime/configuration boundaries.
-- `database/`: migrations, factories, and seeders; Phase 0 contains framework/auth schema only.
+- `database/`: migrations, factories, and seeders; framework/auth schema plus the Phase 1 user-profile extension.
 - `resources/`: Blade/Livewire views, CSS, and JavaScript.
 - `tests/`: PHPUnit feature and unit tests.
 - `docs/`: product, architecture, workflow, ADRs, and reusable templates.

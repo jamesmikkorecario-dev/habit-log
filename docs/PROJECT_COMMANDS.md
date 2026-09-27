@@ -42,6 +42,7 @@ Confirm `DB_DATABASE=habit_log_test` in `.env.testing` before running the destru
 ```bash
 php artisan test
 php artisan test tests/Feature/Auth/AuthenticationTest.php
+php artisan test tests/Feature/Settings/ProfileTest.php
 ```
 
 CI starts MySQL with `docker compose up -d --wait` before `composer setup` and `composer ci:check`. The same Compose initialization creates both databases. CI runs on pull requests and pushes to `main` and `master`.

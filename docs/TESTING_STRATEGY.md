@@ -4,6 +4,10 @@ Use the single framework supplied by the Laravel 13 Livewire starter (PHPUnit). 
 
 Phase 0 covers successful and invalid registration, successful and invalid login, logout, guest denial/redirect for the application page, and authenticated access. Database tests use only `habit_log_test`, reset safely, and remain repeatable.
 
+Phase 1 covers profile loading/saving, username uniqueness and boundaries, nullable text, literal/padded zero text, privacy defaults/toggling, theme validation, escaped identity output, and dashboard navigation. Ownership tests verify that another user's record remains unchanged and that a real Livewire update request is rejected after logout. Invalid submissions must leave all stored profile values unchanged.
+
 CI runs on pull requests and pushes to `main` or `master`. It starts the repository's MySQL Compose service with a health wait before application setup; the initialization script creates `habit_log_test` alongside `habit_log`. Composer runs migrations for setup, then the test command runs Pint and PHPUnit. Setup also builds frontend assets.
+
+Browser smoke testing is a separate acceptance check: register/login/logout, save and reload profile fields (including `"0"`), trigger validation, toggle privacy, and use desktop/mobile navigation with keyboard focus. A regular installed browser is sufficient; browser automation is not an application dependency. Record the browser, viewport, outcomes, and any limitations in the phase closeout report. PHPUnit request tests do not prove client-side interaction or CSRF behavior because the framework bypasses CSRF checks during tests.
 
 Each later feature tests happy paths, validation, server-side authorization/privacy, lifecycle and date boundaries, destructive behavior, and regressions. Run focused tests while developing, then the full suite, Pint, and production asset build before handoff.

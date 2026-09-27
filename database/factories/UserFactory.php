@@ -30,6 +30,9 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'username' => fake()->unique()->regexify('[a-z][a-z0-9_]{2,14}'),
+            'is_private' => true,
+            'theme_key' => 'terminal-green',
         ];
     }
 
@@ -40,6 +43,16 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Indicate that the user's account is public.
+     */
+    public function public(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_private' => false,
         ]);
     }
 }

@@ -4,9 +4,11 @@
 
 Documentation, Laravel, MySQL, Livewire, Alpine, Tailwind, authentication, minimal responsive shell, testing, formatter, and Git initialization.
 
-## Phase 1 — Profile + Theme Foundation (planned)
+## Phase 1 — Profile + Theme Foundation (complete)
 
 Username, display name, bio, account privacy, theme preference, and improved shell. Avatar remains optional.
+
+Closed after the full suite (66 tests), Pint, frontend build, and 27 browser smoke checks passed. See `PHASE_1_CLOSEOUT.md` for evidence and verification limits. CI uses the local MySQL Compose setup before migrations and tests; its remote execution awaits an authorized push or pull request. Phase 2 has not started.
 
 ## Phase 2 — Categories + Habit CRUD
 
