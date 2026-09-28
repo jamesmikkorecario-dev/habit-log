@@ -25,7 +25,7 @@ new #[Title('Habit configuration')] class extends Component
             $this->form->fillHabit($record);
         } else {
             $this->authorize('create', Habit::class);
-            $this->form->start_date = today()->toDateString();
+            $this->form->start_date = auth()->user()->localToday();
             if (request()->filled('category')) {
                 $category = Category::availableTo(auth()->user())->findOrFail(request()->query('category'));
                 $this->authorize('view', $category);
@@ -66,6 +66,27 @@ new #[Title('Habit configuration')] class extends Component
         }
     }
 
+    #[Computed]
+    public function trackingSetup(): array
+    {
+        if ($this->habitId === null) { return ['current' => null, 'pending' => null]; }
+        $habit = auth()->user()->habits()->findOrFail($this->habitId);
+        $this->authorize('view', $habit);
+        $today = auth()->user()->fresh()->localToday();
+        return [
+            'current' => $habit->versions()->with('checkpoints')->where('effective_date', '<=', $today)->latest('effective_date')->first(),
+            'pending' => $habit->entries()->exists() ? $habit->versions()->where('effective_date', '>', $today)->latest('effective_date')->first() : null,
+        ];
+    }
+
+    public function cancelTrackingChange(): void
+    {
+        abort_if($this->habitId === null, 404);
+        app(\App\Actions\Habits\CancelTrackingChange::class)->handle(auth()->user(), $this->habitId);
+        $this->form->fillHabit(auth()->user()->habits()->with('checkpoints')->findOrFail($this->habitId));
+        unset($this->trackingSetup);
+    }
+
     public function save(): void
     {
         $record = $this->habitId === null ? Habit::class : auth()->user()->habits()->findOrFail($this->habitId);
@@ -79,6 +100,11 @@ new #[Title('Habit configuration')] class extends Component
 <div class="max-w-2xl space-y-6">
     <h1 class="text-2xl font-semibold">{{ $habitId === null ? 'Create a habit' : 'Edit habit' }}</h1>
     @if(session('status'))<p role="status" class="text-emerald-300">{{ session('status') }}</p>@endif
+    @if($habitId)
+        <x-tracking-setup :current="$this->trackingSetup['current']" :pending="$this->trackingSetup['pending']" />
+        <p class="text-sm text-zinc-400">After the first daily entry, tracking changes take effect tomorrow in your timezone. Earlier entries and setup are preserved.</p>
+        @if($this->trackingSetup['pending'])<flux:button wire:click="cancelTrackingChange" wire:confirm="Cancel the pending tracking change and return to the current setup?">Cancel pending change</flux:button>@endif
+    @endif
     <form wire:submit="save" class="space-y-6">
         <flux:input wire:model="form.name" label="Habit name" maxlength="100" />
         <flux:textarea wire:model="form.description" label="Description (optional)" maxlength="2000" rows="3" />

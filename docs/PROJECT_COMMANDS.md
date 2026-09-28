@@ -50,6 +50,7 @@ php artisan test tests/Feature/Auth/AuthenticationTest.php
 php artisan test tests/Feature/Settings/ProfileTest.php
 php artisan test tests/Feature/Categories --compact
 php artisan test tests/Feature/Habits --compact
+php artisan test tests/Feature/Tracking --compact
 php artisan test tests/Unit/CategoryRecommenderTest.php --compact
 composer ci:check
 ```
@@ -76,3 +77,5 @@ php artisan about
 php artisan route:list
 docker compose ps
 ```
+
+Phase 3 adds two migrations: tracking schema/timezone, then baseline history backfill. Run `php artisan migrate` with writers stopped during upgrade; do not reset the development database. Backfill is restart-safe per habit. Read `DATABASE_DESIGN.md` before migration recovery or rollback. The concurrency tests launch a guarded test-only PHP worker and require the existing local MySQL connection; run them serially with the rest of the suite.

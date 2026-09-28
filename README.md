@@ -2,9 +2,9 @@
 
 A mobile-first personal habit tracker for building positive habits and reducing unwanted ones, using a terminal-inspired visual language without terminal-style interaction.
 
-**Stack:** Laravel 13, Livewire 4 (including Alpine.js), Tailwind CSS 4, Vite 7, MySQL 8.4, and PHPUnit. **Phases 0–2** are complete for their current scope; Phase 3 daily tracking has not started. See [the Phase 2 closeout](docs/PHASE_2_CLOSEOUT.md) for implementation, verification, and remaining limits, and [the plan](docs/PHASE_2_PLAN.md) for scope decisions.
+**Stack:** Laravel 13, Livewire 4 (including Alpine.js), Tailwind CSS 4, Vite 7, MySQL 8.4, and PHPUnit. **Phases 0–3** are complete for their current scope. See [the Phase 3 closeout](docs/PHASE_3_CLOSEOUT.md) for delivered behavior, verification, and limits, and [the Phase 3 plan](docs/PHASE_3_PLAN.md) for daily tracking, timezone, and historical-data decisions. Phase 4 heatmaps and analytics have not started.
 
-Authenticated users can edit their profile at `/settings/profile`, explore system/personal categories at `/categories`, and manage their habit configurations at `/habits`. All five habit types support configuration, with private defaults and owner-only access. Archive, trash, and restore preserve configuration. Permanent deletion/automatic expiry are deferred; daily tracking, journals, analytics, and sharing belong to later phases.
+Authenticated users can edit their profile at `/settings/profile`, explore system/personal categories at `/categories`, and manage their habit configurations at `/habits`. All five habit types support configuration, with private defaults and owner-only access. Daily recording is available at `/tracking`, with private notes, explicit N/A, and owner-only entry history. Profile settings include a timezone defaulting to UTC. Dated setup and archive/trash intervals preserve historical activity. Permanent deletion/automatic expiry remain deferred; journals, analytics, and sharing belong to later phases.
 
 Development tooling runs natively in Ubuntu under WSL; keep the repository on the Linux filesystem. MySQL alone runs in Docker Desktop via WSL integration.
 

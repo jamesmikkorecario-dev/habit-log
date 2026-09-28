@@ -30,6 +30,21 @@ class Habit extends Model
         ];
     }
 
+    public function versions(): HasMany
+    {
+        return $this->hasMany(HabitTrackingVersion::class);
+    }
+
+    public function entries(): HasMany
+    {
+        return $this->hasMany(HabitEntry::class);
+    }
+
+    public function suspensions(): HasMany
+    {
+        return $this->hasMany(HabitSuspension::class);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

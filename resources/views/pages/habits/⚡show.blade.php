@@ -18,6 +18,19 @@ new #[Title('Habit')] class extends Component
     }
 
     #[Computed]
+    public function trackingSetup(): array
+    {
+        if ($this->habitId === null) { return ['current' => null, 'pending' => null]; }
+        $habit = auth()->user()->habits()->findOrFail($this->habitId);
+        $this->authorize('view', $habit);
+        $today = auth()->user()->fresh()->localToday();
+        return [
+            'current' => $habit->versions()->with('checkpoints')->where('effective_date', '<=', $today)->latest('effective_date')->first(),
+            'pending' => $habit->entries()->exists() ? $habit->versions()->where('effective_date', '>', $today)->latest('effective_date')->first() : null,
+        ];
+    }
+
+    #[Computed]
     public function habit(): Habit
     {
         $habit = auth()->user()->habits()->with(['category', 'checkpoints'])->findOrFail($this->habitId);
@@ -33,6 +46,8 @@ new #[Title('Habit')] class extends Component
         <flux:button :href="route('habits.edit', $habitId)" wire:navigate>Edit habit</flux:button>
     </div>
     @if($this->habit->description !== null)<p class="whitespace-pre-wrap break-words text-zinc-300">{{ $this->habit->description }}</p>@endif
+    <x-tracking-setup :current="$this->trackingSetup['current']" :pending="$this->trackingSetup['pending']" />
+    <h2 class="font-medium">Latest requested configuration</h2>
     <dl class="grid gap-4 rounded-xl border border-emerald-900/50 p-5 sm:grid-cols-2">
         <div><dt class="text-sm text-zinc-400">Category</dt><dd class="break-words">{{ $this->habit->category->name }}</dd></div>
         <div><dt class="text-sm text-zinc-400">Type</dt><dd>{{ $this->habit->type->label() }}</dd></div>
@@ -50,6 +65,10 @@ new #[Title('Habit')] class extends Component
             <ol class="list-inside list-decimal space-y-2">@foreach($this->habit->checkpoints as $checkpoint)<li class="break-words">{{ $checkpoint->label }}</li>@endforeach</ol>
         </section>
     @endif
-    <p class="text-sm text-zinc-400">Only you can access this habit today. Sharing and daily tracking will be available in later updates.</p>
+    <p class="text-sm text-zinc-400">Only you can access this habit and its daily activity. Sharing will be available in a later update.</p>
+    <div class="flex flex-wrap gap-2">
+        <flux:button :href="route('entries.edit', ['habit' => $habitId, 'date' => auth()->user()->localToday()])" wire:navigate>Record today</flux:button>
+        <flux:button :href="route('entries.index', $habitId)" wire:navigate>Entry history</flux:button>
+    </div>
     <flux:button :href="route('habits.index')" wire:navigate>Back to habits</flux:button>
 </div>

@@ -2,7 +2,7 @@
 
 use App\Models\Category;
 use App\Models\Habit;
-use Illuminate\Support\Facades\DB;
+use App\Actions\Habits\TransitionHabit;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -102,20 +102,7 @@ new #[Title('Habits')] class extends Component
 
     private function applyLifecycleTransition(int $id, string $action): void
     {
-        DB::transaction(function () use ($id, $action) {
-            $query = auth()->user()->habits();
-            if ($action === 'restore') {
-                $query->onlyTrashed();
-            }
-            $habit = $query->lockForUpdate()->findOrFail($id);
-            $this->authorize($action, $habit);
-            match ($action) {
-                'archive' => $habit->forceFill(['archived_at' => now()])->save(),
-                'unarchive' => $habit->forceFill(['archived_at' => null])->save(),
-                'delete' => $habit->delete(),
-                'restore' => $habit->restore(),
-            };
-        });
+        app(TransitionHabit::class)->handle(auth()->user(), $id, $action);
         unset($this->habits);
         $this->resetPage();
     }

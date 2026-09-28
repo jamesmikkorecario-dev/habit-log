@@ -22,7 +22,7 @@
                         </a>
 
                         {{-- Desktop navigation --}}
-                        <div class="hidden items-center gap-1 sm:flex">
+                        <div class="hidden items-center gap-1 md:flex">
                             <a
                                 href="{{ route('dashboard') }}"
                                 class="rounded-md px-3 py-2 font-mono text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 motion-reduce:transition-none {{ request()->routeIs('dashboard') ? 'bg-emerald-950/50 text-emerald-300' : 'text-zinc-400 hover:bg-emerald-950/30 hover:text-emerald-300' }}"
@@ -31,7 +31,7 @@
                             >
                                 Dashboard
                             </a>
-                            @foreach(['habits' => 'Habits', 'categories' => 'Categories'] as $section => $label)
+                            @foreach(['tracking' => 'Tracking', 'habits' => 'Habits', 'categories' => 'Categories'] as $section => $label)
                                 <a href="{{ route($section.'.index') }}" wire:navigate
                                     class="rounded-md px-3 py-2 font-mono text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 {{ request()->routeIs($section.'.*') ? 'bg-emerald-950/50 text-emerald-300' : 'text-zinc-400 hover:text-emerald-300' }}"
                                     @if(request()->routeIs($section.'.*')) aria-current="page" @endif>{{ $label }}</a>
@@ -48,7 +48,7 @@
 
                         <div class="flex items-center gap-2">
                             {{-- User dropdown (desktop) --}}
-                            <flux:dropdown class="hidden sm:block" align="end">
+                            <flux:dropdown class="hidden md:block" align="end">
                                 <button
                                     type="button"
                                     aria-label="Account menu"
@@ -81,7 +81,7 @@
                                 @click="mobileOpen = !mobileOpen"
                                 :aria-expanded="mobileOpen.toString()"
                                 aria-label="Toggle navigation"
-                                class="flex h-10 w-10 items-center justify-center rounded-md text-zinc-400 transition hover:text-emerald-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 sm:hidden motion-reduce:transition-none"
+                                class="flex h-10 w-10 items-center justify-center rounded-md text-zinc-400 transition hover:text-emerald-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 md:hidden motion-reduce:transition-none"
                             >
                                 <svg x-show="!mobileOpen" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" /></svg>
                                 <svg x-show="mobileOpen" x-cloak class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
@@ -91,7 +91,7 @@
                 </div>
 
                 {{-- Mobile menu --}}
-                <div x-show="mobileOpen" x-cloak x-transition class="border-t border-emerald-900/50 sm:hidden motion-reduce:transition-none!">
+                <div x-show="mobileOpen" x-cloak x-transition class="border-t border-emerald-900/50 md:hidden motion-reduce:transition-none!">
                     <div class="space-y-1 px-4 py-3">
                         <a
                             href="{{ route('dashboard') }}"
@@ -102,7 +102,7 @@
                         >
                             Dashboard
                         </a>
-                        @foreach(['habits' => 'Habits', 'categories' => 'Categories'] as $section => $label)
+                        @foreach(['tracking' => 'Tracking', 'habits' => 'Habits', 'categories' => 'Categories'] as $section => $label)
                             <a href="{{ route($section.'.index') }}" wire:navigate @click="mobileOpen = false"
                                 class="block rounded-md px-3 py-2 font-mono text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 {{ request()->routeIs($section.'.*') ? 'bg-emerald-950/50 text-emerald-300' : 'text-zinc-400 hover:text-emerald-300' }}"
                                 @if(request()->routeIs($section.'.*')) aria-current="page" @endif>{{ $label }}</a>

@@ -29,3 +29,17 @@ Create/edit forms configure one category, a name (100 characters), optional desc
 Visibility choices are stored preferences: sharing is not available in Phase 2, and all management access is owner-only. Account privacy does not change the new-habit private default. Daily tracking and heatmaps remain future work.
 
 Archive/unarchive preserve configured dates; restore preserves the prior active/archived state. Moving to trash requires a named dialog with Cancel and Confirm controls. Escape cancels and restores focus; status messages announce successful changes. Trash has no automatic expiry or permanent-delete control. Dialogs respect reduced motion. Server-side validation provides field errors; output is escaped and literal `"0"` text is preserved.
+
+## Phase 3 daily tracking interface
+
+Profile settings add an IANA timezone selector, default UTC. The stored preference defines today and the default new-habit start date. Saved entry dates never move when timezone changes.
+
+Desktop/mobile navigation includes Tracking and the dashboard links to Track today. `/tracking?date=YYYY-MM-DD` displays an owner-scoped, paginated daily overview with Previous day, Today, Next day, and a native date input. It distinguishes Not logged, explicit outcomes, N/A, and unavailable dates. There is no automatic missed-entry creation or scoring. Notes and N/A reasons never appear in summaries.
+
+`/habits/{habit}/entries/{date}` records one day. Boolean uses completed/missed; numeric types accept whole counts/minutes/occurrences and an explicit personal assessment; checkpoints derive completed/partial/missed from checked items. All types support N/A and an optional private note. N/A has an optional private reason and retains previously saved measurements/checkpoints. Numeric zero is meaningful; missing values are not coerced to zero. Saving is explicit, with field errors, announced feedback, and reload guidance for stale edits.
+
+The editor protects unsaved activity when navigating away, supports historical dates, and shows the effective setup for that date. Existing dates that become future-local dates after travel remain readable but cannot be edited until eligible again. `/habits/{habit}/entries` is a paginated private history list with links to the editor. Archived/ended habits retain eligible historical access; trashed habits have no tracking access.
+
+Configuration detail/edit pages distinguish current setup from pending next-day changes after the first entry. Historical labels, type, goals, units, and dates remain intact. Pending changes can be cancelled explicitly. Archive/trash starts a neutral gap tomorrow; unarchive/restore resumes on the current local date, preserving prior archive state. Permanent deletion and expiry remain absent.
+
+Use keyboard-accessible standard controls, visible focus, text outcome cues, reduced motion, and announced status/error feedback. Navigation switches to its mobile form below 768px to accommodate the additional link. Browser verification and its limitations are recorded in the Phase 3 closeout after acceptance.

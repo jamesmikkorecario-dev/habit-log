@@ -14,13 +14,15 @@ Closed after the full suite (66 tests), Pint, frontend build, and 27 browser smo
 
 System categories and aliases, custom categories and recommendations, habit CRUD/type/visibility/dates, archive, trash, and restore.
 
-Schema, categories/recommendations, habit configuration, ownership policies, and archive/trash/restore are implemented. Closed after 148 tests / 687 assertions, Pint, the frontend build, migration rollback/reapply, and 42 browser checks passed. See [the Phase 2 closeout](PHASE_2_CLOSEOUT.md) for evidence and limitations and [the implementation plan](PHASE_2_PLAN.md) for scope and later-phase handoffs. Phase 3 has not started.
+Schema, categories/recommendations, habit configuration, ownership policies, and archive/trash/restore are implemented. Closed after 148 tests / 687 assertions, Pint, the frontend build, migration rollback/reapply, and 42 browser checks passed; the test-account follow-up brought the full suite to 151 tests / 702 assertions. See [the Phase 2 closeout](PHASE_2_CLOSEOUT.md) for evidence, scope decisions, and limitations.
 
 Confirmed scope: trash and restore are included; permanent deletion and automatic expiry are deferred to a separately planned follow-up.
 
-## Phase 3 — Daily Tracking
+## Phase 3 — Daily Tracking (complete)
 
 Boolean, count, duration, checkpoint, and avoidance tracking; private notes and N/A states.
+
+Daily tracking, timezone settings, historical configuration, lifecycle gaps, and owner-only entry history are implemented. Closed after 200 tests / 1,100 assertions, Pint, the frontend build, migration/concurrency verification, and 34 main browser checks plus a settled mobile-menu check passed. Both additive migrations are applied locally. See [the Phase 3 closeout](PHASE_3_CLOSEOUT.md) for evidence and limits and [the implementation plan](PHASE_3_PLAN.md) for the contract. Phase 4 has not started; heatmap scoring and the documented avoidance-formula conflict remain outstanding.
 
 ## Phase 4 — Heatmaps + Analytics
 

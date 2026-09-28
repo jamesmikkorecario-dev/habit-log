@@ -1,6 +1,6 @@
 # Database design
 
-Phase 0 implements `users`, `password_reset_tokens`, and `sessions`. Phase 1 extends `users` with the profile fields below. Phase 2 adds categories, aliases, habits, and checkpoint configuration. Tracking, journal, and follower tables remain planned. Habit type and visibility use PHP backed enums with string database columns, boundary validation, and Eloquent enum casts; no database ENUMs.
+Phase 0 implements `users`, `password_reset_tokens`, and `sessions`. Phase 1 extends `users` with the profile fields below. Phase 2 adds categories, aliases, habits, and checkpoint configuration. Phase 3 adds timezone, tracking configuration history, daily entries, and suspension intervals. Journal and follower tables remain planned. Habit type and visibility use PHP backed enums with string database columns, boundary validation, and Eloquent enum casts; no database ENUMs.
 
 ## Implemented user profile
 
@@ -35,12 +35,33 @@ Habit goals are optional for count, duration, and avoidance. Count/duration goal
 
 The authenticated user supplies ownership through server-side relationships. A category FK alone cannot enforce cross-table ownership: scoped validation plus policies require a system category or one owned by the habit's owner. Habit creation/edit and checkpoint synchronization use a transaction; existing habit writes lock the current row. Lifecycle mutations also lock within a transaction. Checkpoint reorder keeps row IDs; invalid or stale checkpoint references reject the entire save.
 
-Archive preserves dates and configuration. Soft deletion preserves checkpoints and archive state; restore clears only the deletion marker. Categories referenced by trashed habits still cannot be deleted. Permanent deletion and automatic expiry are deferred by user choice, so trash remains recoverable after 30 days. No raw activity, cache, or analytics tables are introduced.
+Archive preserves dates and configuration. Soft deletion preserves checkpoints and archive state; restore clears only the deletion marker. Categories referenced by trashed habits still cannot be deleted. Permanent deletion and automatic expiry are deferred by user choice, so trash remains recoverable after 30 days. Phase 2 introduced no raw activity, cache, or analytics tables; the Phase 3 additions below now store raw activity.
+
+## Phase 3 tracking schema
+
+Migration `2026_09_27_000005_add_tracking_schema.php` adds `users.timezone` (string 64, non-null, default UTC) and five tables. A separate `000006_backfill_tracking_history.php` installs baselines and known open suspensions. Existing timestamps stay UTC; dates are stored as calendar DATE values without UTC conversion.
+
+| Table | Storage and constraints |
+| --- | --- |
+| `habit_tracking_versions` | Habit FK with restricted deletion; effective date; type (20); nullable unsigned integer goal and unit (30); start/end dates; unsigned revision default 1; timestamps. Unique `(habit_id, effective_date)` and a valid date-range check. |
+| `habit_tracking_checkpoints` | Version FK with cascade deletion; nullable source checkpoint FK with SET NULL; immutable label (80) and unsigned sort order. Unique version/order. No timestamps. Source configuration removal cannot remove snapshots. |
+| `habit_entries` | Habit, user, and tracking-version FKs with restricted deletion; entry date; status (20); nullable unsigned integer value, private note TEXT, and private N/A reason (500); unsigned revision default 1; timestamps. Unique habit/date; owner/date/habit index. |
+| `habit_checkpoint_entries` | Entry FK with cascade deletion; immutable tracking-checkpoint FK with restricted deletion; completion boolean default false; nullable completion timestamp; timestamps. Unique entry/checkpoint. Historical completion rows refer to snapshots rather than mutable checkpoint configuration. |
+| `habit_suspensions` | Habit FK with restricted deletion; archive/trash reason (10); inclusive start and nullable exclusive end; timestamps. Habit/reason/end/start index; end must be null or on/after start. Open-interval uniqueness is enforced within the locked lifecycle transaction. |
+
+Use backed enum casts for status/type, immutable date/datetime casts, and integer/boolean casts. FKs prove existence; scoped actions derive owner/version/checkpoint membership through the parent habit. Independent FKs do not themselves enforce cross-table same-habit ownership.
+
+Before the first entry, configuration edits replace the baseline and increment its revision. Once any entry exists, including N/A, configuration changes produce a version effective the next local day. Past-date backfill uses the historical version. Pending unreferenced changes may be cancelled; the same transaction restores current editable configuration. Entries and effective versions are never rewritten by ordinary configuration editing. Current habit metadata remains mutable; historical names/categories are not snapshotted.
+
+Recording, configuration, cancellation, and lifecycle transactions acquire a shared owner lock, then an exclusive habit lock. The owner lock stabilizes timezone and is a locking read, avoiding a stale repeatable-read snapshot before a habit lock wait. Daily writes compare entry and configuration revisions; a competing create/update becomes a conflict instead of a silent overwrite. Measurements are integers 0–999,999,999; notes/reasons are application-limited to 2,000/500 characters. Notes/reasons are hidden from model serialization and omitted from summary queries. N/A retains existing measurements/completions while excluding them from later performance eligibility.
+
+Archive/trash intervals begin the next local date; unarchive/restore ends them at the current local date. Same-day transitions close an empty interval; overlapping archive/trash periods both exclude dates. Restore closes only the trash interval. Timezone changes never relocate stored dates. Completion timestamps record when a checkbox was saved as checked, not a guessed historical instant.
+
+The query-builder backfill processes each habit transactionally and skips completed baseline work on retry. It preserves Phase 2 rows, snapshots existing checkpoints, and records open intervals from current UTC lifecycle timestamps. Completed pre-rollout lifecycle periods and earlier configurations cannot be reconstructed. The backfill migration's `down()` does not delete history; the schema migration drops tables in reverse dependency order, then timezone. Dropping those tables destroys Phase 3 data, so rollback/reapply verification is restricted to `habit_log_test`.
+
+Apply the upgrade during a maintenance window with writers stopped: schema DDL is not one MySQL transaction. Back up existing data first. If backfill fails, rerun the pending migration; completed per-habit work is retained. If schema creation fails partway before tracking is enabled, inspect the actual schema and repair/reverse only the incomplete additive schema before retrying. Once activity exists, preserve/export that data before any deployment rollback; do not use schema rollback as a routine recovery action.
 
 ## Planned later domain tables
-
-- **habit_entries:** `id`, `habit_id`, `user_id`, `entry_date`, `status`, nullable `value`, nullable private `note`, nullable `not_applicable_reason`, timestamps; unique `(habit_id, entry_date)`.
-- **habit_checkpoint_entries:** `id`, `habit_entry_id`, `habit_checkpoint_id`, `is_completed`, nullable `completed_at`, timestamps.
 - **journals:** `id`, `user_id`, `journal_date`, `content`, nullable `mood`, timestamps; unique `(user_id, journal_date)`.
 - **follows:** `id`, `follower_id`, `followed_id`, `status`, `requested_at`, nullable `accepted_at`, timestamps; unique pair and no self-following.
 

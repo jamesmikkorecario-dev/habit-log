@@ -28,12 +28,14 @@ use Illuminate\Support\Str;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password', 'username', 'display_name', 'bio', 'is_private', 'theme_key'])]
+#[Fillable(['name', 'email', 'password', 'username', 'display_name', 'bio', 'is_private', 'theme_key', 'timezone'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    protected $attributes = ['timezone' => 'UTC'];
 
     /**
      * Get the attributes that should be cast.
@@ -47,6 +49,11 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_private' => 'boolean',
         ];
+    }
+
+    public function localToday(): string
+    {
+        return now($this->timezone ?? 'UTC')->toDateString();
     }
 
     public function categories(): HasMany

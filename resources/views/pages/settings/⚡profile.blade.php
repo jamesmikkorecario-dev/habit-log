@@ -12,6 +12,7 @@ new #[Title('Profile Settings')] class extends Component
     public string $bio = '';
     public bool $is_private = true;
     public string $theme_key = 'terminal-green';
+    public string $timezone = 'UTC';
 
     /**
      * Initialize the component with the authenticated user's current profile.
@@ -25,6 +26,7 @@ new #[Title('Profile Settings')] class extends Component
         $this->bio = $user->bio ?? '';
         $this->is_private = $user->is_private;
         $this->theme_key = $user->theme_key;
+        $this->timezone = $user->timezone;
     }
 
     /**
@@ -44,6 +46,7 @@ new #[Title('Profile Settings')] class extends Component
             'display_name' => ['nullable', 'string', 'max:50'],
             'bio' => ['nullable', 'string', 'max:160'],
             'is_private' => ['required', 'boolean'],
+            'timezone' => ['required', 'string', 'max:64', Rule::in(timezone_identifiers_list())],
             'theme_key' => ['required', 'string', Rule::in(['terminal-green'])],
         ], [
             'username.regex' => 'Username must start with a letter and contain only lowercase letters, numbers, and underscores.',
@@ -105,6 +108,10 @@ new #[Title('Profile Settings')] class extends Component
             :label="__('Private account')"
             description="Require approval for followers when following becomes available. New habits will default to private for every account."
         />
+
+        <flux:select wire:model="timezone" label="Timezone" description="Defines today for daily tracking. Existing recorded dates stay unchanged.">
+            @foreach(timezone_identifiers_list() as $zone)<flux:select.option :value="$zone">{{ $zone }}</flux:select.option>@endforeach
+        </flux:select>
 
         {{-- Theme --}}
         <flux:select wire:model="theme_key" :label="__('Theme')">

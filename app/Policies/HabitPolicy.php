@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Habit;
 use App\Models\User;
+use App\Services\TrackingDate;
 
 class HabitPolicy
 {
@@ -20,6 +21,11 @@ class HabitPolicy
     public function view(User $user, Habit $habit): bool
     {
         return $habit->user_id === $user->id && ! $habit->trashed();
+    }
+
+    public function record(User $user, Habit $habit, string $date): bool
+    {
+        return $this->view($user, $habit) && app(TrackingDate::class)->reason($user, $habit, $date) === null;
     }
 
     public function update(User $user, Habit $habit): bool

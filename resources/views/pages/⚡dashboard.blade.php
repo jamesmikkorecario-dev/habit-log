@@ -19,7 +19,8 @@ new #[Title('Dashboard')] class extends Component
         Make room for the habits that matter to you.
     </p>
     <div class="mt-6 flex flex-wrap gap-3">
-        <flux:button :href="route('habits.index')" variant="primary" wire:navigate>Your habits</flux:button>
+        <flux:button :href="route('tracking.index')" variant="primary" wire:navigate>Track today</flux:button>
+        <flux:button :href="route('habits.index')" wire:navigate>Your habits</flux:button>
         <flux:button :href="route('habits.create')" wire:navigate>Create a habit</flux:button>
     </div>
 </div>
