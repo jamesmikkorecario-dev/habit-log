@@ -79,3 +79,12 @@ docker compose ps
 ```
 
 Phase 3 adds two migrations: tracking schema/timezone, then baseline history backfill. Run `php artisan migrate` with writers stopped during upgrade; do not reset the development database. Backfill is restart-safe per habit. Read `DATABASE_DESIGN.md` before migration recovery or rollback. The concurrency tests launch a guarded test-only PHP worker and require the existing local MySQL connection; run them serially with the rest of the suite.
+
+Phase 4 focused verification:
+
+```bash
+php artisan test tests/Unit/Analytics --compact
+php artisan test tests/Feature/Analytics --compact
+```
+
+Run these serially with the existing test database. The analytics snapshot test verifies both configured/connected database names before resetting test tables. No Phase 4 migration or new package installation is needed. Complete `composer ci:check`, `npm run build`, and installed-browser acceptance before closeout.

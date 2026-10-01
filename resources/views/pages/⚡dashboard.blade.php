@@ -5,12 +5,12 @@ use Livewire\Component;
 
 new #[Title('Dashboard')] class extends Component
 {
-    // Dashboard content will grow as features are added in later phases.
+    // Analytics remains scoped to the authenticated owner.
 };
 
 ?>
 
-<div>
+<div class="min-w-0 space-y-6">
     <p class="font-mono text-sm text-emerald-500" aria-hidden="true">~/dashboard</p>
     <h1 class="mt-3 text-2xl font-semibold tracking-tight text-zinc-100 sm:text-3xl">
         Welcome, {{ auth()->user()->displayName() }}
@@ -23,4 +23,5 @@ new #[Title('Dashboard')] class extends Component
         <flux:button :href="route('habits.index')" wire:navigate>Your habits</flux:button>
         <flux:button :href="route('habits.create')" wire:navigate>Create a habit</flux:button>
     </div>
+    <livewire:activity-heatmap />
 </div>

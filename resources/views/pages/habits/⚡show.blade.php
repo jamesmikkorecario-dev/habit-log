@@ -39,13 +39,14 @@ new #[Title('Habit')] class extends Component
     }
 }; ?>
 
-<div class="max-w-2xl space-y-6">
+<div class="min-w-0 space-y-6">
     @if(session('status'))<p role="status" class="text-emerald-300">{{ session('status') }}</p>@endif
     <div class="flex flex-wrap items-start justify-between gap-4">
         <h1 class="min-w-0 break-words text-2xl font-semibold">{{ $this->habit->name }}</h1>
         <flux:button :href="route('habits.edit', $habitId)" wire:navigate>Edit habit</flux:button>
     </div>
     @if($this->habit->description !== null)<p class="whitespace-pre-wrap break-words text-zinc-300">{{ $this->habit->description }}</p>@endif
+    <livewire:activity-heatmap :habit-id="$habitId" />
     <x-tracking-setup :current="$this->trackingSetup['current']" :pending="$this->trackingSetup['pending']" />
     <h2 class="font-medium">Latest requested configuration</h2>
     <dl class="grid gap-4 rounded-xl border border-emerald-900/50 p-5 sm:grid-cols-2">

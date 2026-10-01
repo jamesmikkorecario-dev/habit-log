@@ -66,3 +66,9 @@ Apply the upgrade during a maintenance window with writers stopped: schema DDL i
 - **follows:** `id`, `follower_id`, `followed_id`, `status`, `requested_at`, nullable `accepted_at`, timestamps; unique pair and no self-following.
 
 All ownership relationships use foreign keys with intentional deletion behavior. Index date, owner, lifecycle, visibility, and follow-status paths only as queries require. Do not add heatmap/cache tables initially.
+
+## Phase 4 derived analytics
+
+Phase 4 adds no migrations, score columns, seeders, or cache tables. Reports project existing owner-scoped entries, historical versions/checkpoint snapshots, and suspension intervals. Queries omit private notes and N/A reasons. A consistent nonlocking read transaction prevents mixing related rows from different committed versions. Trash excludes a habit from current analytics membership; restoration recomputes its preserved history while retaining suspension gaps. Formula changes never rewrite activity.
+
+Lifetime streaks require reading historical entries in bounded batches; a date-boundary sweep avoids materializing every unlogged day. Existing owner/lifecycle and entry indexes support these queries; measured query plans and performance belong in the Phase 4 closeout. No index migration was justified by the scoped measurements.

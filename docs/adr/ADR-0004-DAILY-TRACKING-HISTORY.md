@@ -5,7 +5,7 @@
 
 ## Context and decision
 
-The user selected an editable timezone defaulting to UTC and preservation of historical setup while allowing future changes, then authorized Phase 3 implementation. Follow the daily contract in [the Phase 3 plan](../PHASE_3_PLAN.md).
+The user selected an editable timezone defaulting to UTC and preservation of historical setup while allowing future changes, then authorized Phase 3 implementation. The implemented daily contract is retained in [database design](../DATABASE_DESIGN.md), [the UI specification](../UI_UX_SPEC.md), and [the Phase 3 closeout](../PHASE_3_CLOSEOUT.md); its implementation plan was retired during Phase 4 planning.
 
 Store calendar entry dates without UTC conversion, and timestamps in UTC. Timezone changes never relocate existing dates. Save one owner-only entry per habit/date; retain raw measurements, private notes, and explicit N/A records. Numeric outcomes are the owner's assessment; checkpoint outcomes follow checked items. No normalized scoring formula is chosen here.
 
@@ -28,3 +28,5 @@ Add timezone and tracking tables, then restart-safe baseline backfill in a separ
 ## Unchanged decisions
 
 No privacy default is relaxed. No scoring formula changes; avoidance maximum, optional-goal scoring, and unlogged-day analytics remain the documented Phase 4 conflict. Permanent deletion/automatic expiry remain deferred.
+
+Subsequent decision (2026-10-01): [ADR-0005](ADR-0005-ANALYTICS-SCORING.md) resolves those scoring questions for Phase 4 planning without changing this ADR's date/history contract.

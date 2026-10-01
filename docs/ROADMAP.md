@@ -22,11 +22,13 @@ Confirmed scope: trash and restore are included; permanent deletion and automati
 
 Boolean, count, duration, checkpoint, and avoidance tracking; private notes and N/A states.
 
-Daily tracking, timezone settings, historical configuration, lifecycle gaps, and owner-only entry history are implemented. Closed after 200 tests / 1,100 assertions, Pint, the frontend build, migration/concurrency verification, and 34 main browser checks plus a settled mobile-menu check passed. Both additive migrations are applied locally. See [the Phase 3 closeout](PHASE_3_CLOSEOUT.md) for evidence and limits and [the implementation plan](PHASE_3_PLAN.md) for the contract. Phase 4 has not started; heatmap scoring and the documented avoidance-formula conflict remain outstanding.
+Daily tracking, timezone settings, historical configuration, lifecycle gaps, and owner-only entry history are implemented. Closed after 200 tests / 1,100 assertions, Pint, the frontend build, migration/concurrency verification, and 34 main browser checks plus a settled mobile-menu check passed. Both additive migrations are applied locally. See [the Phase 3 closeout](PHASE_3_CLOSEOUT.md) for evidence and limits and [ADR-0004](adr/ADR-0004-DAILY-TRACKING-HISTORY.md) for the date/history contract.
 
-## Phase 4 — Heatmaps + Analytics
+## Phase 4 — Heatmaps + Analytics (complete)
 
 Habit and normalized profile heatmaps; current/longest strict streaks and 30-day/yearly consistency.
+
+Owner-only habit/dashboard heatmaps, lifetime current/longest streaks, and 30-day/yearly consistency are implemented. Closed after **243 tests / 1,798 assertions**, Pint, the production build, **41 browser checks**, a concurrent-read snapshot regression, and a 55-habit/1,650-entry query measurement passed. No migration, cache, dependency, or public sharing was added. See [the closeout](PHASE_4_CLOSEOUT.md) for evidence and limits and [the Phase 4 plan](PHASE_4_PLAN.md) for the contract. [ADR-0005](adr/ADR-0005-ANALYTICS-SCORING.md) records the user-selected avoidance limits, goal-free scoring, unlogged/pending treatment, and average-performance consistency. Phase 5 has not started.
 
 ## Phase 5 — Journal
 

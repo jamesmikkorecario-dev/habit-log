@@ -70,3 +70,23 @@ select:focus[data-flux-control] {
         transition: none !important;
     }
 }
+
+.heat-cell {
+    display: inline-flex;
+    width: 1.25rem;
+    height: 1.25rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #525252;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    line-height: 1;
+}
+button.heat-cell { cursor: pointer; }
+button.heat-cell:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.heat-band-neutral { background: transparent; color: #d4d4d4; border-style: dashed; }
+.heat-band-0 { background: #262626; color: #fafafa; }
+.heat-band-1 { background: #064e3b; color: #ecfdf5; }
+.heat-band-2 { background: #047857; color: #fff; }
+.heat-band-3 { background: #34d399; color: #022c22; }
+.heat-band-4 { background: #6ee7b7; color: #022c22; }

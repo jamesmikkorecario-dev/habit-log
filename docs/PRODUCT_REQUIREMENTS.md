@@ -13,6 +13,8 @@ habit.log is a private-by-default, mobile-first web application for daily habits
 - Dates outside the active range are neutral. Strict current/longest streaks coexist with 30-day and yearly consistency.
 - Raw entries remain authoritative. Darker heatmap cells always mean a better day.
 
+Phase 4 planning decisions (2026-10-01): avoidance succeeds at/below its configured maximum, including abstinence for a zero maximum. Goal-free numeric habits use completed/partial/missed assessments scored as 1/0.5/0. Past eligible unlogged dates score zero and break streaks; unlogged today stays pending. Consistency averages normalized performance so partial progress receives proportional credit; strict streaks count fully successful eligible days. See [ADR-0005](adr/ADR-0005-ANALYTICS-SCORING.md) and [the scoring contract](HEATMAP_SCORING.md). These decisions preserve raw entries; implementation evidence is recorded in [the Phase 4 closeout](PHASE_4_CLOSEOUT.md).
+
 ## Journal, categories, and social
 
 One private journal per user/date stores text and optional private mood (initially 1–5). Habit notes are private even when activity is visible. System and custom categories are planned; deterministic aliases, normalized names, and curated keywords recommend an existing category before custom creation, while preserving user choice.
