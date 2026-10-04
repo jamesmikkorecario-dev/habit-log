@@ -145,7 +145,7 @@ new #[Title('Habit configuration')] class extends Component
             <flux:input wire:model="form.start_date" type="date" label="Start date" min="1000-01-01" max="9999-12-31" />
             <flux:input wire:model="form.end_date" type="date" label="End date (optional)" min="1000-01-01" max="9999-12-31" />
         </div>
-        <flux:select wire:model="form.visibility" label="Visibility preference" description="Sharing is not available yet. Only you can access your habits today. New habits always default to private.">
+        <flux:select wire:model="form.visibility" label="Visibility preference" description="Public habits and their history are visible to signed-in users; followers habits require accepted following. Private accounts require approval for both. Notes, N/A reasons, journals and mood stay private. New habits always default to private.">
             @foreach(\App\Enums\HabitVisibility::cases() as $visibility)<flux:select.option :value="$visibility->value">{{ $visibility->label() }}</flux:select.option>@endforeach
         </flux:select>
         <div class="flex flex-wrap gap-3">

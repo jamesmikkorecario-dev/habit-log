@@ -19,9 +19,11 @@ Phase 4 planning decisions (2026-10-01): avoidance succeeds at/below its configu
 
 One private journal per user/date stores text and optional private mood (initially 1–5). Habit notes are private even when activity is visible. System and custom categories are planned; deterministic aliases, normalized names, and curated keywords recommend an existing category before custom creation, while preserving user choice.
 
-Phase 5 planning decisions (2026-10-04): journal text is required and mood is optional; mood-only entries are rejected. The owner can explicitly confirm permanent deletion of the selected date's journal and mood. This does not authorize habit permanent deletion or automatic expiry. See [the Phase 5 plan](PHASE_5_PLAN.md) and [implementation closeout](PHASE_5_CLOSEOUT.md).
+Phase 5 planning decisions (2026-10-04): journal text is required and mood is optional; mood-only entries are rejected. The owner can explicitly confirm permanent deletion of the selected date's journal and mood. This does not authorize habit permanent deletion or automatic expiry. See [the implementation closeout](PHASE_5_CLOSEOUT.md), [journal UI contract](UI_UX_SPEC.md#phase-5-private-journal), and [journal schema](DATABASE_DESIGN.md#phase-5-journal-schema). Its implementation plan was retired during Phase 6 planning.
 
 Followers are directional. Public accounts may accept immediately; private accounts require approval. Habit visibility is private (default), followers, or public and is enforced server-side. Comments, direct messages, and a social feed are excluded.
+
+Phase 6 decisions (2026-10-04, implemented): public profile/habit browsing requires sign-in. Private accounts gate all shared activity behind accepted following, including public-marked habits. Changing a private account to public leaves existing requests pending until explicitly approved or cancelled; it does not automatically accept them. See [the Phase 6 plan](PHASE_6_PLAN.md) for the access matrix and relationship contract, and [the closeout](PHASE_6_CLOSEOUT.md) for observed implementation evidence.
 
 Profiles eventually show username, display name, bio, privacy, counts, selected theme, overall normalized heatmap, and permitted habits. Avatar is optional. Profile activity averages eligible normalized habit scores, excluding N/A and out-of-range habits; no eligible habits means neutral/no data.
 

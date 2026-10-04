@@ -99,3 +99,16 @@ npm run build
 ```
 
 The migration and concurrency tests reset only the guarded test database. Run them serially and finish before browser fixtures. Journal rollback drops journal data; keep the additive table when rolling back application code unless its contents have been preserved.
+
+Phase 6 adds one follows migration, with no data backfill or new dependencies:
+
+```bash
+php artisan migrate --path=database/migrations/2026_10_04_000002_create_follows_table.php
+php artisan migrate:status
+php artisan test tests/Feature/Social --compact
+composer ci:check
+npm run build
+php artisan route:list --path=people
+```
+
+Social concurrency/snapshot/migration tests reset only guarded `habit_log_test`; finish them before seeding categories or creating browser fixtures there. Follow-table rollback loses requests/approvals but must not change earlier data. Prefer application rollback retaining the additive table. Shared reads activate existing explicit public/followers preferences; review the Phase 6 privacy ADR and settings copy before rollout.

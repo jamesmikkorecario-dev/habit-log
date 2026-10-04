@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Route;
 Route::view('/', 'welcome')->name('home');
 
 Route::middleware('auth')->group(function () {
+    Route::livewire('people', 'pages::people.index')->name('people.index');
+    Route::livewire('people/{user:username}', 'pages::people.show')->name('people.show');
+    Route::livewire('people/{user:username}/habits/{habit}', 'pages::people.habit')->whereNumber('habit')->name('people.habit');
     Route::livewire('journal', 'pages::journal.edit')->name('journal.index');
     Route::livewire('tracking', 'pages::tracking.index')->name('tracking.index');
     Route::livewire('habits/{habit}/entries', 'pages::tracking.history')->whereNumber('habit')->name('entries.index');

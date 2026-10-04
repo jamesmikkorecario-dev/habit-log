@@ -3,8 +3,11 @@
 namespace App\Livewire;
 
 use App\Models\Habit;
+use App\Models\User;
 use App\Services\Analytics\ActivityAnalytics;
+use App\Services\SocialAccess;
 use App\Services\TrackingDate;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -16,6 +19,12 @@ class ActivityHeatmap extends Component
     #[Locked]
     public ?int $habitId = null;
 
+    #[Locked]
+    public ?int $subjectId = null;
+
+    #[Locked]
+    public int $viewerId;
+
     #[Url(as: 'year')]
     public $year = '';
 
@@ -25,8 +34,10 @@ class ActivityHeatmap extends Component
 
     public $listPage = 1;
 
-    public function mount(?int $habitId = null): void
+    public function mount(?int $habitId = null, ?int $subjectId = null): void
     {
+        $this->viewerId = auth()->id();
+        $this->subjectId = $subjectId;
         $this->habitId = $habitId;
         $this->year = $this->year === '' ? (int) substr($this->owner()->localToday(), 0, 4) : $this->year;
         $this->validateYear();
@@ -36,7 +47,19 @@ class ActivityHeatmap extends Component
     private function owner()
     {
         abort_unless(auth()->check(), 401);
-        $user = auth()->user()->fresh();
+        abort_unless(auth()->id() === $this->viewerId, 403);
+        $viewer = auth()->user()->fresh();
+        if ($this->subjectId !== null) {
+            $user = User::findOrFail($this->subjectId);
+            abort_unless(Gate::forUser($viewer)->allows('viewShared', $user), 404);
+            if ($this->habitId !== null) {
+                $habit = app(SocialAccess::class)->habits($viewer, $user)->findOrFail($this->habitId);
+                $this->authorize('viewShared', $habit);
+            }
+
+            return $user;
+        }
+        $user = $viewer;
         if ($this->habitId !== null) {
             $habit = $user->habits()->find($this->habitId);
             abort_if($habit === null, 404);
@@ -54,7 +77,9 @@ class ActivityHeatmap extends Component
         $user = $this->owner();
         $this->validateYear();
 
-        return app(ActivityAnalytics::class)->report($user, (int) $this->year, $this->habitId);
+        return $this->subjectId === null
+            ? app(ActivityAnalytics::class)->report($user, (int) $this->year, $this->habitId)
+            : app(ActivityAnalytics::class)->reportForViewer(auth()->user(), $user, (int) $this->year, $this->habitId);
     }
 
     public function changeYear(int $direction): void

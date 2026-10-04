@@ -1,6 +1,6 @@
 # Phase 5 closeout — Private daily journal
 
-Date: 2026-10-04. Implementation and scoped verification are complete. Scope follows the [Phase 5 plan](PHASE_5_PLAN.md), the user's required-text/optional-mood and confirmed-deletion decisions, and the existing date/privacy guardrails. The user subsequently requested a Phase 5 commit and findings report; no push was requested.
+Date: 2026-10-04. Implementation and scoped verification are complete. Scope follows the user's required-text/optional-mood and confirmed-deletion decisions and the existing date/privacy guardrails. The implemented contract is retained in [the journal UI specification](UI_UX_SPEC.md#phase-5-private-journal) and [database design](DATABASE_DESIGN.md#phase-5-journal-schema); its implementation plan was retired during Phase 6 planning. The user subsequently requested a Phase 5 commit and findings report; no push was requested.
 
 ## Delivered behavior
 

@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Habit;
 use App\Models\User;
+use App\Services\SocialAccess;
 use App\Services\TrackingDate;
 
 class HabitPolicy
@@ -21,6 +22,13 @@ class HabitPolicy
     public function view(User $user, Habit $habit): bool
     {
         return $habit->user_id === $user->id && ! $habit->trashed();
+    }
+
+    public function viewShared(User $user, Habit $habit): bool
+    {
+        $subject = $habit->user()->first();
+
+        return $subject && app(SocialAccess::class)->habits($user, $subject)->whereKey($habit->id)->exists();
     }
 
     public function record(User $user, Habit $habit, string $date): bool

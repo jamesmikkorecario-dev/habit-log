@@ -32,11 +32,13 @@ Owner-only habit/dashboard heatmaps, lifetime current/longest streaks, and 30-da
 
 ## Phase 5 — Journal (complete)
 
-Private daily journal, optional mood, date navigation, and confirmed deletion are implemented. Required plain text, owner-only access, timezone-aware dates, stale-write protection, and dirty-draft navigation guards follow [the plan](PHASE_5_PLAN.md). Verification includes 294 tests / 2,126 assertions, Pint, the production build, and 37 installed-browser checks; see [the closeout](PHASE_5_CLOSEOUT.md) for evidence, findings, and limitations. The additive journal migration is applied locally. Habit permanent deletion and automatic expiry remain deferred.
+Private daily journal, optional mood, date navigation, and confirmed deletion are implemented. Required plain text, owner-only access, timezone-aware dates, stale-write protection, and dirty-draft navigation guards are documented in [the UI specification](UI_UX_SPEC.md#phase-5-private-journal) and [database design](DATABASE_DESIGN.md#phase-5-journal-schema). Verification includes 294 tests / 2,126 assertions, Pint, the production build, and 37 installed-browser checks; see [the closeout](PHASE_5_CLOSEOUT.md) for evidence, findings, and limitations. The additive journal migration is applied locally. Habit permanent deletion and automatic expiry remain deferred.
 
-## Phase 6 — Social
+## Phase 6 — Social (complete)
 
 Directional followers, private-account requests, approval/rejection, permitted profile viewing, and visibility enforcement. No comments.
+
+Directional follow management and username-based read-only profiles/habits are implemented at `/people`. Signed-in browsing, private-account gates, retained pending requests, filtered analytics, stale-request protection, and owner-only writes follow [the plan](PHASE_6_PLAN.md) and [ADR-0006](adr/ADR-0006-SHARED-PROFILE-ACCESS.md). Full verification passed 329 tests / 3,610 assertions, Pint, the production build, and 45 Chrome checks, with measured filtered-report and relationship-list queries. The follows migration is applied locally as batch 6. See [the closeout](PHASE_6_CLOSEOUT.md) for evidence and limits.
 
 ## Phase 7 — Hardening
 

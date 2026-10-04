@@ -2,7 +2,7 @@
     x-data="{ detailOpen: false, origin: null, closeDetail() { this.detailOpen = false; this.$nextTick(() => this.$root.querySelector(`[data-focus-key='${this.origin}']`)?.focus()); } }">
     <header class="space-y-2">
         <h2 class="text-xl font-semibold">{{ $habitId ? 'Habit activity' : 'Overall profile activity' }}</h2>
-        <p class="text-sm text-zinc-400">As of {{ $report['today'] }} · {{ $report['timezone'] }} · Only you can see this activity.</p>
+        <p class="text-sm text-zinc-400">As of {{ $report['today'] }} · {{ $report['timezone'] }} · {{ $subjectId === null ? 'Your management view includes private habits. Shared profiles follow your visibility settings.' : 'Only habits you may view are included.' }}</p>
         @if($report['lifecycle'])<p class="text-sm text-zinc-300">{{ $report['lifecycle'] }}</p>@endif
         @if(!$habitId)<p class="text-sm text-zinc-400">{{ $report['habit_count'] }} habits included. Archived history is preserved; trashed habits are excluded until restored.</p>@endif
     </header>

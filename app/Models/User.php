@@ -61,6 +61,21 @@ class User extends Authenticatable
         return $this->hasMany(Category::class);
     }
 
+    public function following(): HasMany
+    {
+        return $this->hasMany(Follow::class, 'follower_id');
+    }
+
+    public function followers(): HasMany
+    {
+        return $this->hasMany(Follow::class, 'followed_id');
+    }
+
+    public function sharedName(): string
+    {
+        return $this->display_name ?? $this->username ?? 'Unavailable profile';
+    }
+
     public function journals(): HasMany
     {
         return $this->hasMany(Journal::class);

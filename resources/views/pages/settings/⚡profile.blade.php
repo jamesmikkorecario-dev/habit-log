@@ -3,10 +3,13 @@
 use App\Models\User;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 new #[Title('Profile Settings')] class extends Component
 {
+    #[Locked] public int $ownerId;
+
     public string $username = '';
     public string $display_name = '';
     public string $bio = '';
@@ -19,6 +22,7 @@ new #[Title('Profile Settings')] class extends Component
      */
     public function mount(): void
     {
+        $this->ownerId = auth()->id();
         $user = auth()->user();
 
         $this->username = $user->username ?? '';
@@ -32,8 +36,14 @@ new #[Title('Profile Settings')] class extends Component
     /**
      * Validate and save profile changes to the authenticated user.
      */
+    public function hydrate(): void
+    {
+        abort_unless(auth()->check() && auth()->id() === $this->ownerId, 403);
+    }
+
     public function save(): void
     {
+        $this->hydrate();
         $validated = $this->validate([
             'username' => [
                 'required',
@@ -58,7 +68,7 @@ new #[Title('Profile Settings')] class extends Component
             $validated[$field] = $value === '' ? null : $value;
         }
 
-        auth()->user()->update($validated);
+        app(\App\Actions\Profiles\SaveProfile::class)->handle(auth()->user(), $validated);
 
         $this->dispatch('profile-updated');
     }
@@ -89,7 +99,7 @@ new #[Title('Profile Settings')] class extends Component
             :label="__('Display name')"
             :placeholder="auth()->user()->name"
             maxlength="50"
-            description="Optional. Falls back to your registration name."
+            description="Optional. Shared profiles fall back to your username; your own greeting falls back to your registration name."
         />
 
         {{-- Bio --}}
@@ -106,7 +116,7 @@ new #[Title('Profile Settings')] class extends Component
         <flux:checkbox
             wire:model="is_private"
             :label="__('Private account')"
-            description="Require approval for followers when following becomes available. New habits will default to private for every account."
+            description="Require approval to see any shared activity. Turning this off lets signed-in users see public habits and their history. Existing pending requests stay pending. New habits always default to private."
         />
 
         <flux:select wire:model="timezone" label="Timezone" description="Defines today for daily tracking. Existing recorded dates stay unchanged.">

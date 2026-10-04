@@ -5,6 +5,7 @@ namespace App\Services\Analytics;
 use App\Models\Habit;
 use App\Models\HabitEntry;
 use App\Models\User;
+use App\Services\SocialAccess;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -28,10 +29,24 @@ class ActivityAnalytics
 
     public function report(User $user, int $year, ?int $habitId = null): array
     {
+        return $this->buildReport($user, $year, $habitId);
+    }
+
+    public function reportForViewer(User $viewer, User $subject, int $year, ?int $habitId = null): array
+    {
+        return $this->buildReport($subject, $year, $habitId, $viewer);
+    }
+
+    private function buildReport(User $user, int $year, ?int $habitId, ?User $viewer = null): array
+    {
         // A single repeatable-read snapshot includes timezone, ownership, history and entries.
         // No locking reads: analytics must not block daily recording.
-        return DB::transaction(function () use ($user, $year, $habitId) {
-            $user = User::query()->select(['id', 'timezone'])->findOrFail($user->id);
+        return DB::transaction(function () use ($user, $year, $habitId, $viewer) {
+            $user = User::query()->select(['id', 'timezone', 'username', 'is_private'])->findOrFail($user->id);
+            if ($viewer !== null) {
+                $viewer = User::findOrFail($viewer->id);
+                abort_unless(Gate::forUser($viewer)->allows('viewShared', $user), 404);
+            }
             $today = $user->localToday();
             Validator::make(['year' => $year], ['year' => ['integer', 'min:1000', 'max:'.substr($today, 0, 4)]])->validate();
             $last = self::day($today);
@@ -43,11 +58,12 @@ class ActivityAnalytics
             $details = [];
             $habitCount = 0;
             $lifecycle = null;
-            $query = $user->habits()->select(['id', 'user_id', 'archived_at', 'deleted_at']);
+            $query = ($viewer === null ? $user->habits() : app(SocialAccess::class)->habits($viewer, $user))->select(['id', 'user_id', 'archived_at', 'deleted_at']);
             if ($habitId !== null) {
                 $query->whereKey($habitId);
-                Gate::forUser($user)->authorize('view', (clone $query)->firstOrFail());
-            } else {
+                $habit = (clone $query)->firstOrFail();
+                Gate::forUser($viewer ?? $user)->authorize($viewer === null ? 'view' : 'viewShared', $habit);
+            } elseif ($viewer === null) {
                 Gate::forUser($user)->authorize('viewAny', Habit::class);
             }
             $query->with(['versions' => fn ($q) => $q->orderBy('effective_date')->with('checkpoints:id,habit_tracking_version_id'), 'suspensions'])
@@ -103,7 +119,7 @@ class ActivityAnalytics
                     $index++;
                 }
                 $counts = $day <= $last ? $segments[$index] : $this->emptyCounts();
-                $cells[] = $this->cell($day, $counts, $day > $last, $habitId) + ($details[$day] ?? []);
+                $cells[] = $this->cell($day, $counts, $day > $last, $habitId, $viewer !== null) + ($details[$day] ?? []);
             }
 
             return [
@@ -266,7 +282,7 @@ class ActivityAnalytics
         return max(0.0, min(1.0, $counts['sum'] / $counts['count']));
     }
 
-    private function cell(int $day, array $counts, bool $future, ?int $habitId): array
+    private function cell(int $day, array $counts, bool $future, ?int $habitId, bool $shared): array
     {
         $score = $this->mean($counts);
         $state = $future ? 'future' : ($score !== null ? ($counts['unlogged'] === $counts['count'] ? 'unlogged' : 'recorded') : ($counts['unavailable'] ? 'unavailable' : ($counts['pending'] ? 'pending' : ($counts['na'] ? 'na' : 'inactive'))));
@@ -279,7 +295,7 @@ class ActivityAnalytics
             'na' => '—', 'pending' => '…', 'unavailable' => '!', 'unlogged' => '?', 'recorded' => $score > 0 ? '·' : '×', default => ''
         };
         $date = self::date($day);
-        $link = in_array($state, ['recorded', 'unlogged', 'pending', 'na'], true) ? ($habitId ? route('entries.edit', ['habit' => $habitId, 'date' => $date]) : route('tracking.index', ['date' => $date])) : null;
+        $link = ! $shared && in_array($state, ['recorded', 'unlogged', 'pending', 'na'], true) ? ($habitId ? route('entries.edit', ['habit' => $habitId, 'date' => $date]) : route('tracking.index', ['date' => $date])) : null;
 
         return compact('date', 'state', 'score', 'success', 'label', 'band', 'symbol', 'link') + array_intersect_key($counts, array_flip(['count', 'na', 'pending', 'unavailable', 'unlogged']));
     }

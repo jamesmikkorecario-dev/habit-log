@@ -1,6 +1,6 @@
 # Database design
 
-Phase 0 implements `users`, `password_reset_tokens`, and `sessions`. Phase 1 extends `users` with the profile fields below. Phase 2 adds categories, aliases, habits, and checkpoint configuration. Phase 3 adds timezone, tracking configuration history, daily entries, and suspension intervals. Phase 5 adds private daily journals; follower tables remain planned. Habit type and visibility use PHP backed enums with string database columns, boundary validation, and Eloquent enum casts; no database ENUMs.
+Phase 0 implements `users`, `password_reset_tokens`, and `sessions`. Phase 1 extends `users` with the profile fields below. Phase 2 adds categories, aliases, habits, and checkpoint configuration. Phase 3 adds timezone, tracking configuration history, daily entries, and suspension intervals. Phase 5 adds private daily journals; Phase 6 adds directional follows. Habit type and visibility use PHP backed enums with string database columns, boundary validation, and Eloquent enum casts; no database ENUMs.
 
 ## Implemented user profile
 
@@ -11,7 +11,7 @@ Migration: `2026_09_18_000001_add_profile_fields_to_users_table.php`.
 | `username` | Nullable string, 30 characters, unique index | Null at registration; required when saving settings; 3–30 lowercase letters, digits, or underscores, starting with a letter. |
 | `display_name` | Nullable string, 50 characters | Optional; falls back to the registration `name`. |
 | `bio` | Nullable string, 160 characters | Optional profile text. |
-| `is_private` | Boolean, default `true` | Stored account preference; follower enforcement arrives in Phase 6. |
+| `is_private` | Boolean, default `true` | Phase 6 gates all shared activity behind accepted following for private accounts. |
 | `theme_key` | String, 30 characters, default `terminal-green` | Validated against the sole supported theme, `terminal-green`. |
 
 Profile saves update only the authenticated user's row. Display name and bio are trimmed; empty/whitespace-only values become null, while `"0"` is preserved. The migration's `down()` removes the username index and all five fields. Avatar is optional and not implemented.
@@ -61,9 +61,6 @@ The query-builder backfill processes each habit transactionally and skips comple
 
 Apply the upgrade during a maintenance window with writers stopped: schema DDL is not one MySQL transaction. Back up existing data first. If backfill fails, rerun the pending migration; completed per-habit work is retained. If schema creation fails partway before tracking is enabled, inspect the actual schema and repair/reverse only the incomplete additive schema before retrying. Once activity exists, preserve/export that data before any deployment rollback; do not use schema rollback as a routine recovery action.
 
-## Planned later domain tables
-- **follows:** `id`, `follower_id`, `followed_id`, `status`, `requested_at`, nullable `accepted_at`, timestamps; unique pair and no self-following.
-
 All ownership relationships use foreign keys with intentional deletion behavior. Index date, owner, lifecycle, visibility, and follow-status paths only as queries require. Do not add heatmap/cache tables initially.
 
 ## Phase 4 derived analytics
@@ -79,3 +76,11 @@ Migration `2026_10_04_000001_create_journals_table.php` adds `journals`: primary
 Journal save/delete transactions lock the user first, then the owner/date journal. Expected ID plus revision prevents stale edits/deletion and replacement-entry races; fresh timezone comparison prevents writes from obsolete timezone settings. Content/mood are hidden from general serialization and explicitly loaded for the owner editor. Deletion physically removes only the confirmed journal row. No habit data, analytics, cache, history-version, or recovery tables change.
 
 The additive migration does not backfill journals. Its rollback drops only `journals` and therefore destroys journal content; preserve data before deployment rollback. Populated upgrade and rollback/reapply tests run only after checking configured and connected database names are `habit_log_test`. Phase 3 migration tests now select their own migration paths rather than assuming they are the latest migrations.
+
+## Phase 6 follow schema
+
+Migration `2026_10_04_000002_create_follows_table.php` adds `follows`: primary ID; required `follower_id` and `followed_id` user FKs with restricted parent deletion; status string cast to `FollowStatus`; required UTC `requested_at`; nullable UTC `accepted_at`; timestamps. A unique directed pair allows A → B and B → A as separate relationships. Checks prohibit self-follow and require pending/null acceptance or accepted/non-null acceptance at or after the request. Indexes `(followed_id, status, id)` and `(follower_id, status, id)` support both paginated list directions.
+
+Follow creation locks both users in ascending ID order before the pair. Approval/rejection/cancellation/unfollow/removal lock the same users, then recheck the exact row identity and expected state. Pending → accepted is the only in-place transition; all other transitions delete the row. New requests receive new IDs, so stale actions cannot mutate a replacement. Privacy saves take an exclusive owner lock and preserve every existing follow row, including pending requests. No relationship, habit visibility, or activity backfill occurs.
+
+Rollback drops only follows and loses relationship/approval data; prefer reverting shared application routes while retaining the table. The guarded populated upgrade/rollback test verifies prior profiles, habits, configuration, entries, checkpoints, suspensions, and journals remain unchanged. No new analytics cache or habit visibility index is added without measured need.

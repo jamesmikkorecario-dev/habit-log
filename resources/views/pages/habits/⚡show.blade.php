@@ -66,7 +66,7 @@ new #[Title('Habit')] class extends Component
             <ol class="list-inside list-decimal space-y-2">@foreach($this->habit->checkpoints as $checkpoint)<li class="break-words">{{ $checkpoint->label }}</li>@endforeach</ol>
         </section>
     @endif
-    <p class="text-sm text-zinc-400">Only you can access this habit and its daily activity. Sharing will be available in a later update.</p>
+    <p class="text-sm text-zinc-400">Only you can edit this habit. Its visibility and your account privacy control read-only sharing through People. Notes and N/A reasons stay private.</p>
     <div class="flex flex-wrap gap-2">
         <flux:button :href="route('entries.edit', ['habit' => $habitId, 'date' => auth()->user()->localToday()])" wire:navigate>Record today</flux:button>
         <flux:button :href="route('entries.index', $habitId)" wire:navigate>Entry history</flux:button>
