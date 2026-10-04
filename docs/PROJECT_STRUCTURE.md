@@ -13,3 +13,7 @@ Do not create parallel domain/repository layers without demonstrated need. Futur
 Tracking tests live in `tests/Feature/Tracking`; their fixtures use real Actions. `tests/Fixtures/tracking-save-worker.php` is a test-only subprocess for a controlled MySQL lock-wait regression, guarded to `habit_log_test`.
 
 Phase 4 analytics lives in `app/Services/Analytics` (scoring, historical projections, aggregation, and streaks). `app/Livewire/ActivityHeatmap.php` and `resources/views/livewire/activity-heatmap.blade.php` supply the shared authenticated interface; `resources/views/components/activity-heatmap.blade.php` renders its calendar. The dashboard and habit detail embed it. Unit tests are in `tests/Unit/Analytics`; integration/privacy/calendar/concurrent-read tests are in `tests/Feature/Analytics`. No new schema or dependency is added.
+
+Phase 5 adds `app/Models/Journal.php`, `app/Policies/JournalPolicy.php`, `app/Livewire/Forms/JournalForm.php`, and `app/Actions/Journals/{SaveJournal,DeleteJournal}.php`. The journal editor is `resources/views/pages/journal/⚡edit.blade.php`. A new migration and `JournalFactory` supply storage/test fixtures without adding seeded private journals. Tests live under `tests/Feature/Journals`; `tests/Fixtures/journal-write-worker.php` is a guarded concurrency-test subprocess.
+
+`resources/js/app.js` supplies the journal Back/Forward guard using history positions only; it never stores private text or mood.

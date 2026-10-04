@@ -1,6 +1,6 @@
 # Database design
 
-Phase 0 implements `users`, `password_reset_tokens`, and `sessions`. Phase 1 extends `users` with the profile fields below. Phase 2 adds categories, aliases, habits, and checkpoint configuration. Phase 3 adds timezone, tracking configuration history, daily entries, and suspension intervals. Journal and follower tables remain planned. Habit type and visibility use PHP backed enums with string database columns, boundary validation, and Eloquent enum casts; no database ENUMs.
+Phase 0 implements `users`, `password_reset_tokens`, and `sessions`. Phase 1 extends `users` with the profile fields below. Phase 2 adds categories, aliases, habits, and checkpoint configuration. Phase 3 adds timezone, tracking configuration history, daily entries, and suspension intervals. Phase 5 adds private daily journals; follower tables remain planned. Habit type and visibility use PHP backed enums with string database columns, boundary validation, and Eloquent enum casts; no database ENUMs.
 
 ## Implemented user profile
 
@@ -62,7 +62,6 @@ The query-builder backfill processes each habit transactionally and skips comple
 Apply the upgrade during a maintenance window with writers stopped: schema DDL is not one MySQL transaction. Back up existing data first. If backfill fails, rerun the pending migration; completed per-habit work is retained. If schema creation fails partway before tracking is enabled, inspect the actual schema and repair/reverse only the incomplete additive schema before retrying. Once activity exists, preserve/export that data before any deployment rollback; do not use schema rollback as a routine recovery action.
 
 ## Planned later domain tables
-- **journals:** `id`, `user_id`, `journal_date`, `content`, nullable `mood`, timestamps; unique `(user_id, journal_date)`.
 - **follows:** `id`, `follower_id`, `followed_id`, `status`, `requested_at`, nullable `accepted_at`, timestamps; unique pair and no self-following.
 
 All ownership relationships use foreign keys with intentional deletion behavior. Index date, owner, lifecycle, visibility, and follow-status paths only as queries require. Do not add heatmap/cache tables initially.
@@ -72,3 +71,11 @@ All ownership relationships use foreign keys with intentional deletion behavior.
 Phase 4 adds no migrations, score columns, seeders, or cache tables. Reports project existing owner-scoped entries, historical versions/checkpoint snapshots, and suspension intervals. Queries omit private notes and N/A reasons. A consistent nonlocking read transaction prevents mixing related rows from different committed versions. Trash excludes a habit from current analytics membership; restoration recomputes its preserved history while retaining suspension gaps. Formula changes never rewrite activity.
 
 Lifetime streaks require reading historical entries in bounded batches; a date-boundary sweep avoids materializing every unlogged day. Existing owner/lifecycle and entry indexes support these queries; measured query plans and performance belong in the Phase 4 closeout. No index migration was justified by the scoped measurements.
+
+## Phase 5 journal schema
+
+Migration `2026_10_04_000001_create_journals_table.php` adds `journals`: primary ID, required user FK with restricted parent deletion, immutable calendar DATE `journal_date`, required TEXT `content`, nullable unsigned tiny-integer `mood`, unsigned `revision` default 1, and timestamps. Unique `(user_id, journal_date)` supports the owner/date lookup and enforces one journal per day. A check constraint limits mood to null or 1–5. Application validation requires nonblank text up to 10,000 characters; timestamps remain UTC.
+
+Journal save/delete transactions lock the user first, then the owner/date journal. Expected ID plus revision prevents stale edits/deletion and replacement-entry races; fresh timezone comparison prevents writes from obsolete timezone settings. Content/mood are hidden from general serialization and explicitly loaded for the owner editor. Deletion physically removes only the confirmed journal row. No habit data, analytics, cache, history-version, or recovery tables change.
+
+The additive migration does not backfill journals. Its rollback drops only `journals` and therefore destroys journal content; preserve data before deployment rollback. Populated upgrade and rollback/reapply tests run only after checking configured and connected database names are `habit_log_test`. Phase 3 migration tests now select their own migration paths rather than assuming they are the latest migrations.

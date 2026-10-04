@@ -31,7 +31,7 @@
                             >
                                 Dashboard
                             </a>
-                            @foreach(['tracking' => 'Tracking', 'habits' => 'Habits', 'categories' => 'Categories'] as $section => $label)
+                            @foreach(['tracking' => 'Tracking', 'journal' => 'Journal', 'habits' => 'Habits', 'categories' => 'Categories'] as $section => $label)
                                 <a href="{{ route($section.'.index') }}" wire:navigate
                                     class="rounded-md px-3 py-2 font-mono text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 {{ request()->routeIs($section.'.*') ? 'bg-emerald-950/50 text-emerald-300' : 'text-zinc-400 hover:text-emerald-300' }}"
                                     @if(request()->routeIs($section.'.*')) aria-current="page" @endif>{{ $label }}</a>
@@ -102,7 +102,7 @@
                         >
                             Dashboard
                         </a>
-                        @foreach(['tracking' => 'Tracking', 'habits' => 'Habits', 'categories' => 'Categories'] as $section => $label)
+                        @foreach(['tracking' => 'Tracking', 'journal' => 'Journal', 'habits' => 'Habits', 'categories' => 'Categories'] as $section => $label)
                             <a href="{{ route($section.'.index') }}" wire:navigate @click="mobileOpen = false"
                                 class="block rounded-md px-3 py-2 font-mono text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 {{ request()->routeIs($section.'.*') ? 'bg-emerald-950/50 text-emerald-300' : 'text-zinc-400 hover:text-emerald-300' }}"
                                 @if(request()->routeIs($section.'.*')) aria-current="page" @endif>{{ $label }}</a>

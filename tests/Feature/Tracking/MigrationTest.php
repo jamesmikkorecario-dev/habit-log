@@ -18,6 +18,7 @@ class MigrationTest extends TestCase
         $this->assertSame('habit_log_test', DB::connection()->getDatabaseName());
         $this->assertSame('habit_log_test', DB::selectOne('SELECT DATABASE() AS db')->db);
         $paths = array_map(fn ($path) => str_replace(base_path().DIRECTORY_SEPARATOR, '', $path), array_filter(glob(database_path('migrations/*.php')), fn ($path) => basename($path) < '2026_09_27_000005'));
+        $trackingPaths = ['database/migrations/2026_09_27_000005_add_tracking_schema.php', 'database/migrations/2026_09_27_000006_backfill_tracking_history.php'];
         try {
             $this->assertSame(0, Artisan::call('migrate:fresh', ['--force' => true, '--path' => $paths]));
             // Query builder avoids new application defaults when creating the pre-upgrade fixture.
@@ -25,7 +26,7 @@ class MigrationTest extends TestCase
             $habit = Habit::factory()->create(['user_id' => $userId, 'type' => 'checkpoint', 'start_date' => '2024-01-01', 'archived_at' => '2026-09-20 23:00:00', 'deleted_at' => '2026-09-22 10:00:00']);
             $checkpoint = HabitCheckpoint::factory()->create(['habit_id' => $habit->id, 'label' => 'Original label']);
             $before = $habit->fresh()->getAttributes();
-            $this->assertSame(0, Artisan::call('migrate', ['--force' => true]));
+            $this->assertSame(0, Artisan::call('migrate', ['--force' => true, '--path' => $trackingPaths]));
             $this->assertSame('UTC', User::findOrFail($userId)->timezone);
             $this->assertSame($before, Habit::withTrashed()->findOrFail($habit->id)->getAttributes());
             $this->assertSame('Original label', DB::table('habit_tracking_checkpoints')->sole()->label);
@@ -37,12 +38,12 @@ class MigrationTest extends TestCase
             $this->assertDatabaseCount('habit_tracking_checkpoints', 1);
             $this->assertDatabaseCount('habit_suspensions', 2);
             $this->assertDatabaseCount('habit_entries', 0);
-            $this->assertSame(0, Artisan::call('migrate:rollback', ['--step' => 2, '--force' => true]));
+            $this->assertSame(0, Artisan::call('migrate:rollback', ['--step' => 2, '--force' => true, '--path' => $trackingPaths]));
             $this->assertFalse(Schema::hasTable('habit_entries'));
             $this->assertFalse(Schema::hasColumn('users', 'timezone'));
             $this->assertSame('Keep profile', DB::table('users')->where('id', $userId)->value('bio'));
             $this->assertSame('Original label', $checkpoint->fresh()->label);
-            $this->assertSame(0, Artisan::call('migrate', ['--force' => true]));
+            $this->assertSame(0, Artisan::call('migrate', ['--force' => true, '--path' => $trackingPaths]));
             $this->assertDatabaseCount('habit_tracking_versions', 1);
         } finally {
             RefreshDatabaseState::$migrated = false;

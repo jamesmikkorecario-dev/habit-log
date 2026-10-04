@@ -2,7 +2,7 @@
 
 - **Status:** Accepted and implemented in Phase 4; see the closeout for verification
 - **Date:** 2026-10-01
-- **Related:** [ADR-0002](ADR-0002-HEATMAP-SEMANTICS.md), [ADR-0004](ADR-0004-DAILY-TRACKING-HISTORY.md), [Phase 4 plan](../PHASE_4_PLAN.md)
+- **Related:** [ADR-0002](ADR-0002-HEATMAP-SEMANTICS.md), [ADR-0004](ADR-0004-DAILY-TRACKING-HISTORY.md), [scoring contract](../HEATMAP_SCORING.md), [Phase 4 closeout](../PHASE_4_CLOSEOUT.md)
 
 ## Context
 
@@ -25,7 +25,7 @@ This supersedes only the gradual avoidance formula in the original scoring docum
 
 Use the date's historical setup and raw entries; never rewrite assessments, measurements, checkpoint snapshots, or stored dates. For goal-based numeric habits, performance can differ from the owner's assessment. Explain both separately in the UI.
 
-Overall daily performance is the equal-weight average of contributing habit scores. Consistency averages the contributing daily scores within the named window; overall consistency averages daily profile scores rather than pooling habit-days. Missing past entries contribute derived zeros without creating rows. Today's pending habits are excluded from its provisional score; show pending counts. The detailed streak, eligibility, window, accessibility, and query rules are implementation choices specified in the Phase 4 plan, not additional user-confirmed answers.
+Overall daily performance is the equal-weight average of contributing habit scores. Consistency averages the contributing daily scores within the named window; overall consistency averages daily profile scores rather than pooling habit-days. Missing past entries contribute derived zeros without creating rows. Today's pending habits are excluded from its provisional score; show pending counts. The detailed streak, eligibility, window, accessibility, and query rules are implementation choices retained in [scoring](../HEATMAP_SCORING.md), [UI](../UI_UX_SPEC.md), and [architecture](../ARCHITECTURE.md), not additional user-confirmed answers. The Phase 4 plan was retired during Phase 5 planning.
 
 ## Alternatives and consequences
 
@@ -35,4 +35,4 @@ Add regression cases for limit equality/zero, goal-free assessments, contradicto
 
 ## Rollback and documentation
 
-Update the scoring/product documents and Phase 4 plan together. Historical closeouts remain historical. No raw-data migration is required. A code rollback removes derived behavior without deleting activity; a subsequent formula change needs a new ADR and regression tests rather than silently restoring the contradictory old formula.
+Keep the scoring/product documents and implemented UI/architecture descriptions aligned. Historical closeouts remain historical. No raw-data migration is required. A code rollback removes derived behavior without deleting activity; a subsequent formula change needs a new ADR and regression tests rather than silently restoring the contradictory old formula.

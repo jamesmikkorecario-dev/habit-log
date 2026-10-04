@@ -28,11 +28,11 @@ Daily tracking, timezone settings, historical configuration, lifecycle gaps, and
 
 Habit and normalized profile heatmaps; current/longest strict streaks and 30-day/yearly consistency.
 
-Owner-only habit/dashboard heatmaps, lifetime current/longest streaks, and 30-day/yearly consistency are implemented. Closed after **243 tests / 1,798 assertions**, Pint, the production build, **41 browser checks**, a concurrent-read snapshot regression, and a 55-habit/1,650-entry query measurement passed. No migration, cache, dependency, or public sharing was added. See [the closeout](PHASE_4_CLOSEOUT.md) for evidence and limits and [the Phase 4 plan](PHASE_4_PLAN.md) for the contract. [ADR-0005](adr/ADR-0005-ANALYTICS-SCORING.md) records the user-selected avoidance limits, goal-free scoring, unlogged/pending treatment, and average-performance consistency. Phase 5 has not started.
+Owner-only habit/dashboard heatmaps, lifetime current/longest streaks, and 30-day/yearly consistency are implemented. Closed after **243 tests / 1,798 assertions**, Pint, the production build, **41 browser checks**, a concurrent-read snapshot regression, and a 55-habit/1,650-entry query measurement passed. No migration, cache, dependency, or public sharing was added. See [the closeout](PHASE_4_CLOSEOUT.md) for evidence and limits and [the scoring contract](HEATMAP_SCORING.md) for its analytics rules. [ADR-0005](adr/ADR-0005-ANALYTICS-SCORING.md) records the user-selected avoidance limits, goal-free scoring, unlogged/pending treatment, and average-performance consistency.
 
-## Phase 5 — Journal
+## Phase 5 — Journal (complete)
 
-Private daily journal, mood, and date navigation.
+Private daily journal, optional mood, date navigation, and confirmed deletion are implemented. Required plain text, owner-only access, timezone-aware dates, stale-write protection, and dirty-draft navigation guards follow [the plan](PHASE_5_PLAN.md). Verification includes 294 tests / 2,126 assertions, Pint, the production build, and 37 installed-browser checks; see [the closeout](PHASE_5_CLOSEOUT.md) for evidence, findings, and limitations. The additive journal migration is applied locally. Habit permanent deletion and automatic expiry remain deferred.
 
 ## Phase 6 — Social
 

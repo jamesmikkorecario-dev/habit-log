@@ -88,3 +88,14 @@ php artisan test tests/Feature/Analytics --compact
 ```
 
 Run these serially with the existing test database. The analytics snapshot test verifies both configured/connected database names before resetting test tables. No Phase 4 migration or new package installation is needed. Complete `composer ci:check`, `npm run build`, and installed-browser acceptance before closeout.
+
+Phase 5 adds one journal migration. Apply it with `php artisan migrate` after preserving existing data; do not reset the development database. Focused verification:
+
+```bash
+php artisan test tests/Feature/Journals --compact
+php artisan test tests/Feature/Tracking/MigrationTest.php --compact
+composer ci:check
+npm run build
+```
+
+The migration and concurrency tests reset only the guarded test database. Run them serially and finish before browser fixtures. Journal rollback drops journal data; keep the additive table when rolling back application code unless its contents have been preserved.
