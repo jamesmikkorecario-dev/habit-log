@@ -1,6 +1,6 @@
 # Project commands
 
-Run commands from the repository root in Ubuntu WSL. MySQL runs through Docker Desktop WSL integration.
+The commands below describe the native Ubuntu/WSL workflow. For application, Vite and database containers, use [the Docker guide](DOCKER.md); run Artisan/Composer/npm through `docker compose exec app`.
 
 ## Setup
 
@@ -9,7 +9,7 @@ composer install
 npm install
 cp .env.example .env
 php artisan key:generate
-docker compose up -d --wait
+docker compose up -d --wait mysql
 php artisan migrate
 ```
 
@@ -28,7 +28,7 @@ The first two commands run Laravel and Vite separately. The provided Composer co
 ## Database
 
 ```bash
-docker compose up -d --wait
+docker compose up -d --wait mysql
 docker compose stop
 php artisan migrate
 php artisan migrate:status
@@ -55,7 +55,7 @@ php artisan test tests/Unit/CategoryRecommenderTest.php --compact
 composer ci:check
 ```
 
-CI starts MySQL with `docker compose up -d --wait` before `composer setup` and `composer ci:check`. The same Compose initialization creates both databases. CI runs on pull requests and pushes to `main` and `master`.
+CI starts MySQL with `docker compose up -d --wait mysql` before `composer setup` and `composer ci:check`. The same Compose initialization creates both databases. CI runs on pull requests and pushes to `main` and `master`.
 
 ## Formatting
 
@@ -113,7 +113,7 @@ php artisan route:list --path=people
 
 Social concurrency/snapshot/migration tests reset only guarded `habit_log_test`; finish them before seeding categories or creating browser fixtures there. Follow-table rollback loses requests/approvals but must not change earlier data. Prefer application rollback retaining the additive table. Shared reads activate existing explicit public/followers preferences; review the Phase 6 privacy ADR and settings copy before rollout.
 
-## Phase 7 hardening (in progress)
+## Phase 7 hardening verification
 
 ```bash
 php artisan test tests/Feature/Auth/SessionBoundaryTest.php tests/Feature/Auth/HardeningTest.php --compact

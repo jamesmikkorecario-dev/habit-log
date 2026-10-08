@@ -6,18 +6,29 @@ A mobile-first personal habit tracker for building positive habits and reducing 
 
 Authenticated users can edit their profile at `/settings/profile`, explore system/personal categories at `/categories`, and manage their habit configurations at `/habits`. All five habit types support configuration, with private defaults and owner-only access. Daily recording is available at `/tracking`, with private notes, explicit N/A, and owner-only entry history. Profile settings include a timezone defaulting to UTC. Dated setup and archive/trash intervals preserve historical activity. The dashboard and habit details now show owner-only yearly heatmaps, lifetime strict streaks, and 30-day/yearly consistency derived from historical activity. Private journaling is available at `/journal`, with required text, optional mood, date navigation, and confirmed deletion. People provides follow requests, approvals, and read-only profiles/habits filtered by account privacy and habit visibility. Journals, mood, and notes remain private. Permanent habit deletion/automatic expiry remain deferred.
 
-Development tooling runs natively in Ubuntu under WSL; keep the repository on the Linux filesystem. MySQL alone runs in Docker Desktop via WSL integration.
+Docker Compose runs Laravel/Apache, Vite and MySQL for local development. A separate production image includes the application and compiled assets. See [the Docker guide](docs/DOCKER.md) for setup, persistence and deployment boundaries. The native Ubuntu/WSL workflow remains available.
 
-## Local setup
+## Docker development
 
-Use Ubuntu 24.04 under WSL2 and keep the repository on its native Linux filesystem. PHP, Composer, Node/npm, Laravel, and Vite run in Ubuntu. Docker Desktop with WSL integration runs MySQL only.
+For this already configured checkout:
+
+```bash
+docker compose build app
+docker compose up -d --wait
+```
+
+Open http://localhost:8000. For a fresh checkout, first follow [Docker setup](docs/DOCKER.md#local-development) to create the environment/key and explicitly apply migrations. The same guide covers container tests, dependency updates, persistent data and the production image.
+
+## Native local setup
+
+Use Ubuntu 24.04 under WSL2 and keep the repository on its native Linux filesystem. PHP, Composer, Node/npm, Laravel, and Vite run in Ubuntu. Start only the MySQL Compose service for this native workflow.
 
 ```bash
 composer install
 npm install
 cp .env.example .env
 php artisan key:generate
-docker compose up -d --wait
+docker compose up -d --wait mysql
 php artisan migrate
 php artisan db:seed --class=CategorySeeder
 ```

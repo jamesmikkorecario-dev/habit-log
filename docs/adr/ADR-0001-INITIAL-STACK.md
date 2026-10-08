@@ -1,6 +1,6 @@
 # ADR-0001: Initial stack
 
-- **Status:** Accepted
+- **Status:** Accepted; native-only runtime choice superseded by [ADR-0007](ADR-0007-CONTAINER-RUNTIME.md).
 - **Date:** 2026-09-11
 
 ## Context and decision

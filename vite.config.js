@@ -14,6 +14,9 @@ export default defineConfig({
         tailwindcss(),
     ],
     server: {
+        ...(process.env.DOCKER_VITE === '1' ? {
+            hmr: { host: 'localhost', clientPort: Number(process.env.VITE_PORT || 5173) },
+        } : {}),
         cors: true,
         watch: {
             ignored: [

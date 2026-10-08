@@ -33,7 +33,7 @@ jobs:
           node-version: '22'
 
       - name: Start MySQL
-        run: docker compose up -d --wait
+        run: docker compose up -d --wait mysql
 
       - name: Setup Application
         run: composer setup
@@ -53,6 +53,12 @@ jobs:
         env:
           HABIT_LOG_E2E: '1'
         run: npm run test:e2e
+
+      - name: Build production image
+        run: docker build --target production -t habit-log:production .
+
+      - name: Verify production image runtime
+        run: sh tests/Containers/smoke.sh
 
       - name: Preserve synthetic browser failure screenshots
         if: failure()

@@ -2,6 +2,8 @@
 
 Status: Phase 7 provider-neutral runbook with local rehearsal evidence in [the closeout](PHASE_7_CLOSEOUT.md); target-host verification remains open. This is a provider-neutral procedure, not evidence of a deployed service. Record target-host, TLS, mail and recovery checks in the Phase 7 closeout before launch. Use [database design](DATABASE_DESIGN.md) for migration semantics and [security/privacy](SECURITY_AND_PRIVACY.md) for disclosure rules.
 
+A production Docker image is available; see [the Docker guide](DOCKER.md#production-image) for build/runtime commands and container persistence. The host/TLS/mail/recovery checks here still apply.
+
 ## Runtime and release layout
 
 Deploy one Laravel application, a web server/PHP process manager, and MySQL compatible with the locked application. PHP 8.3 or newer within the Composer constraints is required; run `composer check-platform-reqs --no-dev` on the actual runtime to verify extensions and dependency requirements. MySQL 8.4 is the repository's tested database. Node 22 and npm are build tools; neither Vite's development server nor `artisan serve` is a production server.

@@ -6,7 +6,7 @@
 - `resources/`: Blade/Livewire single-file pages for dashboard, settings, categories, and habit list/configuration/detail and daily tracking/editor/history; CSS and JavaScript.
 - `tests/`: PHPUnit feature and unit tests.
 - `docs/`: product, architecture, workflow, ADRs, and reusable templates.
-- `compose.yaml`: MySQL-only local development service.
+- `Dockerfile`, `.dockerignore`, `compose.yaml`, `docker/`: development app/Vite/MySQL services and a production application image, Apache/PHP configuration and database initialization. See [the Docker guide](DOCKER.md).
 
 Do not create parallel domain/repository layers without demonstrated need. Future feature placement should follow the conventions in the installed Laravel version.
 
@@ -23,3 +23,5 @@ Phase 6 adds `Follow`, `FollowStatus`, user follow relationships, `FollowPolicy`
 The follows migration and factory are under `database`; no social seeder is added. `tests/Feature/Social` covers relationships, matrix/payload privacy, shared analytics, migration, concurrency, snapshots, and representative queries. `tests/Fixtures/social-write-worker.php` is a guarded MySQL subprocess fixture. Local browser/query evidence lives in ignored `storage/app/phase6-checks`.
 
 Phase 7 adds `app/Http/Middleware/WebSecurity.php`, `app/Livewire/Concerns/RequiresSameUser.php`, authentication hardening regressions, `tests/bootstrap.php` for the test lock, `tests/Browser` with Playwright configuration, guarded browser/restore fixtures, and the separately invoked `tests/Performance` suite. Test tooling is development-only; no application schema, role layer, queue, or persisted analytics cache is added. Deployment/recovery instructions live in [DEPLOYMENT.md](DEPLOYMENT.md); findings, results and release gates are recorded in [the closeout](PHASE_7_CLOSEOUT.md).
+
+Container runtime verification lives in `tests/Containers/smoke.sh` and [the Docker guide](DOCKER.md#verification-record). CI builds the production target and executes the disposable-image smoke check after application/browser verification.

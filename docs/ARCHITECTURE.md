@@ -1,6 +1,6 @@
 # Architecture
 
-habit.log is a Laravel modular monolith. PHP, Composer, Node/npm, Vite, and the Laravel process run natively in Ubuntu WSL; Docker hosts only development MySQL.
+habit.log is a Laravel modular monolith. Docker Compose provides Apache/PHP, Vite and MySQL for local development; a separate production image packages the runtime with compiled assets. Native Ubuntu/WSL development remains supported by starting only the MySQL service. [ADR-0007](adr/ADR-0007-CONTAINER-RUNTIME.md) supersedes the initial native-only runtime decision; [the Docker guide](DOCKER.md) describes configuration, persistence and verification.
 
 Livewire components own UI state and interaction, with Alpine.js for small client-side behavior. Blade renders views but does not contain substantial business logic. Validation occurs at Laravel/Livewire boundaries. Policies/Gates and authentication middleware enforce authorization server-side.
 
