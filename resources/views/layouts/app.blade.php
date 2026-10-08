@@ -11,7 +11,7 @@
                 x-data="{ mobileOpen: false }"
             >
                 <div class="mx-auto max-w-5xl px-4 sm:px-6">
-                    <div class="flex h-14 items-center justify-between">
+                    <div class="flex min-h-14 items-center justify-between gap-3 py-2">
                         {{-- Branding --}}
                         <a
                             href="{{ route('dashboard') }}"
@@ -22,7 +22,7 @@
                         </a>
 
                         {{-- Desktop navigation --}}
-                        <div class="hidden items-center gap-1 lg:flex">
+                        <div class="hidden min-w-0 flex-1 flex-wrap items-center justify-end gap-1 lg:flex">
                             <a
                                 href="{{ route('dashboard') }}"
                                 class="rounded-md px-3 py-2 font-mono text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 motion-reduce:transition-none {{ request()->routeIs('dashboard') ? 'bg-emerald-950/50 text-emerald-300' : 'text-zinc-400 hover:bg-emerald-950/30 hover:text-emerald-300' }}"

@@ -62,6 +62,9 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function configureRateLimiting(): void
     {
+        RateLimiter::for('public-auth', fn (Request $request) => Limit::perMinute(20)
+            ->by($request->route()->getName().'|'.$request->ip()));
+
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
 

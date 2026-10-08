@@ -1,6 +1,6 @@
 # Phase 6 closeout — Followers and permitted profiles
 
-Date: 2026-10-04. Phase 6 implementation and scoped verification are complete. Scope follows the [plan](PHASE_6_PLAN.md), the three confirmed sign-in/privacy/pending-request decisions, and [ADR-0006](adr/ADR-0006-SHARED-PROFILE-ACCESS.md). The user subsequently requested a Phase 6 commit and findings report. No push, deployment, or new dependency was requested or performed. The preexisting planning changes, including retirement of the Phase 5 plan, remain intact.
+Date: 2026-10-04. Phase 6 implementation and scoped verification are complete. Scope follows the three confirmed sign-in/privacy/pending-request decisions and [ADR-0006](adr/ADR-0006-SHARED-PROFILE-ACCESS.md), which now retains the access matrix and relationship contract. Phase 6 was committed at the user's request as `3e04d88`. No push, deployment, or new dependency was requested or performed. The preexisting planning changes, including retirement of the Phase 5 plan, remain intact. The Phase 6 implementation plan was retired at the user's request during Phase 7 planning on 2026-10-05.
 
 ## Delivered behavior
 
@@ -68,4 +68,4 @@ Existing explicit public/followers preferences now grant permitted signed-in rea
 
 Browser verification is limited to the installed Chrome. Firefox, Safari, real touch devices, a full screen-reader audit, and production-scale load testing were not performed. No anonymous browsing, social feed, comments, messages, notifications, journal sharing, permanent habit deletion, or automatic expiry is included. Broader hardening remains Phase 7.
 
-Suggested commit: `feat: implement Phase 6 followers and shared profiles`.
+Commit: `3e04d88` — `feat: implement Phase 6 followers and shared profiles`.

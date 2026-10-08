@@ -1,5 +1,5 @@
 // Track history positions so cancelling Back/Forward can restore the original
-// entry before Livewire consumes popstate. No journal content enters history.
+// entry before Livewire consumes popstate. No draft content enters history.
 const positionKey = 'habitLogPosition';
 let position = Number.isInteger(history.state?.[positionKey]) ? history.state[positionKey] : 0;
 let restoring = false;
@@ -24,11 +24,14 @@ window.addEventListener('popstate', (event) => {
     }
 
     const destination = event.state?.[positionKey];
-    const editor = document.querySelector('[data-journal-editor]');
+    const editor = document.querySelector('[data-journal-editor], [data-entry-editor]');
     const dirty = editor && window.Alpine?.$data(editor).dirty;
 
     if (dirty && Number.isInteger(destination) && destination !== position) {
-        if (!confirm('Leave this page and discard unsaved journal changes?')) {
+        const message = editor.matches('[data-journal-editor]')
+            ? 'Leave this page and discard unsaved journal changes?'
+            : 'Leave this page and discard unsaved activity?';
+        if (!confirm(message)) {
             event.stopImmediatePropagation();
             restoring = true;
             history.go(position - destination);

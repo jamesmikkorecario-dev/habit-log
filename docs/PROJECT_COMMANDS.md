@@ -112,3 +112,45 @@ php artisan route:list --path=people
 ```
 
 Social concurrency/snapshot/migration tests reset only guarded `habit_log_test`; finish them before seeding categories or creating browser fixtures there. Follow-table rollback loses requests/approvals but must not change earlier data. Prefer application rollback retaining the additive table. Shared reads activate existing explicit public/followers preferences; review the Phase 6 privacy ADR and settings copy before rollout.
+
+## Phase 7 hardening (in progress)
+
+```bash
+php artisan test tests/Feature/Auth/SessionBoundaryTest.php tests/Feature/Auth/HardeningTest.php --compact
+composer audit --locked
+npm audit
+composer ci:check
+npm run build
+```
+
+The browser runner requires explicit opt-in because it resets only `habit_log_test`. It pins that database and clears an inherited database URL; its setup helper independently rejects conflicting URLs/cached configuration. An occupied preview port is refused. PHPUnit and browser runs share `storage/framework/testing.lock`; finish one before starting another. It serves production assets on loopback port 8017 with normal session/CSRF middleware, debug off, local mail capture, and a fresh isolated runtime/cache directory per run.
+
+On Linux with a compatible installed Chromium executable:
+
+```bash
+HABIT_LOG_E2E=1 E2E_BROWSER_EXECUTABLE=/path/to/chrome npm run test:e2e
+```
+
+On this WSL/Windows setup, use installed Windows Node and Chrome:
+
+```bash
+HABIT_LOG_E2E=1 E2E_NODE='/mnt/c/Program Files/nodejs/node.exe' npm run test:e2e
+```
+
+The Windows runner selects `C:\Program Files\Google\Chrome\Application\chrome.exe`. Custom browser settings passed to Windows Node require adding the relevant variable names to `WSLENV`; the Linux runner still owns fixture setup and server cleanup. No system library/browser download occurs in application setup or this command. CI explicitly runs `npx playwright install --with-deps chromium` in its own runner before browser tests. `E2E_BROWSER=firefox` or `webkit` selects an available compatible runtime; do not claim cross-browser verification from configuration alone.
+
+Run larger measurements separately from the default suite:
+
+```bash
+php artisan test tests/Performance/PerformanceTest.php --compact
+```
+
+This guarded test resets the test database, generates synthetic histories, and records scoped measurements in ignored `storage/app/phase7-checks/performance.json`. It shares the same process lock. Browser screenshots/results and local mail/server logs also stay under the ignored evidence directory; CI uploads only synthetic failure screenshots, not logs, traces or authenticated storage. Use [the deployment runbook](DEPLOYMENT.md) for release/restore procedures; these test commands are never production commands.
+
+After a populated test/browser fixture exists, the local Compose recovery drill is:
+
+```bash
+HABIT_LOG_RESTORE_REHEARSAL=1 python3 tests/Fixtures/restore-rehearsal.py
+```
+
+It takes the shared test lock, exports only `habit_log_test`, encrypts/decrypts the synthetic export with GPG, imports into a newly named `habit_log_restore_*` database, compares all table counts/checksums and application analytics/journal policies, then revokes its temporary read grant and drops only that new database. It requires the local Compose root account and installed GPG; it never exports/resets development data. The temporary encryption key is destroyed after the drill, so the retained encrypted artifact is evidence, not a reusable production backup. Exact measurements appear in `storage/app/phase7-checks/restore.json`.

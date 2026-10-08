@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Concerns\RequiresSameUser;
 use App\Models\Habit;
 use App\Services\TrackingDate;
 use Illuminate\Support\Carbon;
@@ -11,6 +12,8 @@ use Livewire\WithPagination;
 
 new #[Title('Daily tracking')] class extends Component
 {
+    use RequiresSameUser;
+
     use WithPagination;
     #[Url]
     public string $date = '';

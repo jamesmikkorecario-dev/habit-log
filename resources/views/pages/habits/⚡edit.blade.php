@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Concerns\RequiresSameUser;
 use App\Actions\Habits\SaveHabit;
 use App\Livewire\Forms\HabitForm;
 use App\Models\Category;
@@ -12,6 +13,8 @@ use Livewire\Component;
 
 new #[Title('Habit configuration')] class extends Component
 {
+    use RequiresSameUser;
+
     public HabitForm $form;
     #[Locked]
     public ?int $habitId = null;

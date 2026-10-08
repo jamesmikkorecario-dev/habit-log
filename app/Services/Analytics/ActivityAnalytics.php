@@ -73,7 +73,17 @@ class ActivityAnalytics
                         $habitCount++;
                         $versions = $habit->versions->keyBy('id');
                         $ranges = $this->ranges($habit, $last);
-                        $contexts[$habit->id] = compact('habit', 'versions', 'ranges');
+                        // Immutable calendar fields are identical for every entry
+                        // using a version. Prepare them once per report batch.
+                        $setups = $versions->map(fn ($version) => [
+                            'effective' => $version->getRawOriginal('effective_date'),
+                            'start' => $version->getRawOriginal('start_date'),
+                            'end' => $version->getRawOriginal('end_date'),
+                            'type' => $version->type->value, 'goal' => $version->goal_value,
+                            'checkpoints' => $version->checkpoints->modelKeys(),
+                        ])->all();
+                        $suspensions = $habit->suspensions->map(fn ($s) => [$s->getRawOriginal('start_date'), $s->getRawOriginal('end_date')])->all();
+                        $contexts[$habit->id] = compact('habit', 'versions', 'ranges', 'setups', 'suspensions');
                         if ($versions->isEmpty()) {
                             $this->add($events, $minimum, $last, $this->scoring->state('unavailable'));
                         } else {
@@ -97,11 +107,12 @@ class ActivityAnalytics
                         ->with(['checkpoints:id,habit_entry_id,habit_tracking_checkpoint_id,is_completed'])
                         ->chunkById(500, function ($entries) use (&$events, &$details, $contexts, $last, $first, $yearEnd, $habitId) {
                             foreach ($entries as $entry) {
-                                $day = self::day($entry->entry_date->toDateString());
+                                $date = $entry->getRawOriginal('entry_date');
+                                $day = self::day($date);
                                 $context = $contexts[$entry->habit_id];
                                 $base = $context['versions']->isEmpty() ? $this->scoring->state('unavailable') : $this->scoring->state($this->contains($context['ranges'], $day) ? ($day === $last ? 'pending' : 'unlogged') : 'inactive');
                                 $version = $context['versions']->get($entry->habit_tracking_version_id);
-                                $result = $this->entryScore($entry, $version, $context['habit']);
+                                $result = $this->entryScore($entry, $context['setups'][$entry->habit_tracking_version_id] ?? null, $date, $context['suspensions']);
                                 $this->add($events, $day, $day, $base, -1);
                                 $this->add($events, $day, $day, $result);
                                 if ($habitId !== null && $day >= $first && $day <= $yearEnd) {
@@ -133,20 +144,26 @@ class ActivityAnalytics
         });
     }
 
-    private function entryScore($entry, $version, Habit $habit): array
+    private function entryScore($entry, ?array $setup, string $date, array $suspensions): array
     {
-        if (! $version || $version->habit_id !== $habit->id || $entry->entry_date < $version->effective_date) {
+        // Setups came exclusively from this habit's versions; a foreign version
+        // has no lookup entry. SQL DATE strings sort in calendar order.
+        if (! $setup || $date < $setup['effective']) {
             return $this->scoring->state('unavailable');
         }
-        $date = $entry->entry_date->toDateString();
-        if ($date < $version->start_date->toDateString() || ($version->end_date && $date > $version->end_date->toDateString()) || $habit->suspensions->contains(fn ($s) => $s->start_date->toDateString() <= $date && (! $s->end_date || $s->end_date->toDateString() > $date))) {
+        if ($date < $setup['start'] || ($setup['end'] && $date > $setup['end'])) {
             return $this->scoring->state('inactive');
         }
-        $ids = $version->checkpoints->modelKeys();
+        foreach ($suspensions as [$start, $end]) {
+            if ($start <= $date && (! $end || $end > $date)) {
+                return $this->scoring->state('inactive');
+            }
+        }
+        $ids = $setup['checkpoints'];
         $actualIds = $entry->checkpoints->pluck('habit_tracking_checkpoint_id')->all();
         $valid = count($actualIds) === count($ids) && count(array_diff($actualIds, $ids)) === 0;
 
-        return $this->scoring->calculate($version->type->value, $version->goal_value, $entry->status->value, $entry->value, $entry->checkpoints->where('is_completed', true)->count(), count($ids), $valid);
+        return $this->scoring->calculate($setup['type'], $setup['goal'], $entry->status->value, $entry->value, $entry->checkpoints->where('is_completed', true)->count(), count($ids), $valid);
     }
 
     /** Eligible intervals, clipped by the next configuration and all suspension periods. */

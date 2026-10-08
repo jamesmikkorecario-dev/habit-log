@@ -77,7 +77,7 @@ select:focus[data-flux-control] {
     height: 1.25rem;
     align-items: center;
     justify-content: center;
-    border: 1px solid #525252;
+    border: 1px solid #737373;
     border-radius: 3px;
     font-size: 0.7rem;
     line-height: 1;

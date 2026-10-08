@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Concerns\RequiresSameUser;
 use App\Models\Category;
 use App\Services\CategoryRecommender;
 use App\Support\NormalizedName;
@@ -12,6 +13,8 @@ use Livewire\Component;
 
 new #[Title('Categories')] class extends Component
 {
+    use RequiresSameUser;
+
     public $name = '';
     public $description = '';
     #[Locked]

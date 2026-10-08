@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Concerns\RequiresSameUser;
 use App\Models\Habit;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -9,6 +10,8 @@ use Livewire\WithPagination;
 
 new #[Title('Entry history')] class extends Component
 {
+    use RequiresSameUser;
+
     use WithPagination;
     #[Locked] public int $habitId;
     public function mount(int $habit): void { $this->habitId = $habit; $this->habit; }

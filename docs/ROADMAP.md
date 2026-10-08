@@ -38,8 +38,10 @@ Private daily journal, optional mood, date navigation, and confirmed deletion ar
 
 Directional followers, private-account requests, approval/rejection, permitted profile viewing, and visibility enforcement. No comments.
 
-Directional follow management and username-based read-only profiles/habits are implemented at `/people`. Signed-in browsing, private-account gates, retained pending requests, filtered analytics, stale-request protection, and owner-only writes follow [the plan](PHASE_6_PLAN.md) and [ADR-0006](adr/ADR-0006-SHARED-PROFILE-ACCESS.md). Full verification passed 329 tests / 3,610 assertions, Pint, the production build, and 45 Chrome checks, with measured filtered-report and relationship-list queries. The follows migration is applied locally as batch 6. See [the closeout](PHASE_6_CLOSEOUT.md) for evidence and limits.
+Directional follow management and username-based read-only profiles/habits are implemented at `/people`. Signed-in browsing, private-account gates, retained pending requests, filtered analytics, stale-request protection, and owner-only writes follow [ADR-0006 and its access/state contract](adr/ADR-0006-SHARED-PROFILE-ACCESS.md). Full verification passed 329 tests / 3,610 assertions, Pint, the production build, and 45 Chrome checks, with measured filtered-report and relationship-list queries. The follows migration is applied locally as batch 6. See [the closeout](PHASE_6_CLOSEOUT.md) for evidence and limits.
 
-## Phase 7 — Hardening
+## Phase 7 — Hardening (implemented; release verification open)
 
 Security, privacy, accessibility, mobile, performance/query reviews; critical E2E coverage and deployment documentation.
+
+Local implementation passed 336 tests / 3,737 assertions, Pint, the production build, 14 browser scenarios, comparative performance checks and isolated recovery verification. [The closeout](PHASE_7_CLOSEOUT.md) records fixes, critical browser coverage, representative measurements, recovery rehearsal evidence and open assistive/device, hosted CI, target-host and capacity gates. The Phase 7 plan and findings ledger were retired during commit preparation; their remaining release gates are retained in the closeout. Phase 7 release verification remains incomplete until those gates are resolved. Habit permanent deletion and automatic expiry remain deferred.

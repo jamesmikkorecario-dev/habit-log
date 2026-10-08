@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Concerns\RequiresSameUser;
 use App\Models\Habit;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
@@ -8,6 +9,8 @@ use Livewire\Component;
 
 new #[Title('Habit')] class extends Component
 {
+    use RequiresSameUser;
+
     #[Locked]
     public int $habitId;
 

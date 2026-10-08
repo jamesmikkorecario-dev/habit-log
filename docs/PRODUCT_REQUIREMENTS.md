@@ -23,7 +23,7 @@ Phase 5 planning decisions (2026-10-04): journal text is required and mood is op
 
 Followers are directional. Public accounts may accept immediately; private accounts require approval. Habit visibility is private (default), followers, or public and is enforced server-side. Comments, direct messages, and a social feed are excluded.
 
-Phase 6 decisions (2026-10-04, implemented): public profile/habit browsing requires sign-in. Private accounts gate all shared activity behind accepted following, including public-marked habits. Changing a private account to public leaves existing requests pending until explicitly approved or cancelled; it does not automatically accept them. See [the Phase 6 plan](PHASE_6_PLAN.md) for the access matrix and relationship contract, and [the closeout](PHASE_6_CLOSEOUT.md) for observed implementation evidence.
+Phase 6 decisions (2026-10-04, implemented): public profile/habit browsing requires sign-in. Private accounts gate all shared activity behind accepted following, including public-marked habits. Changing a private account to public leaves existing requests pending until explicitly approved or cancelled; it does not automatically accept them. See [the social access contract](adr/ADR-0006-SHARED-PROFILE-ACCESS.md#access-and-disclosure-contract) for the access matrix and relationship contract, and [the closeout](PHASE_6_CLOSEOUT.md) for observed implementation evidence.
 
 Profiles eventually show username, display name, bio, privacy, counts, selected theme, overall normalized heatmap, and permitted habits. Avatar is optional. Profile activity averages eligible normalized habit scores, excluding N/A and out-of-range habits; no eligible habits means neutral/no data.
 

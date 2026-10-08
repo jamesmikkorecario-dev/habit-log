@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Concerns\RequiresSameUser;
 use App\Actions\Habits\SaveHabitEntry;
 use App\Enums\HabitType;
 use App\Livewire\Forms\HabitEntryForm;
@@ -13,6 +14,8 @@ use Livewire\Component;
 
 new #[Title('Record activity')] class extends Component
 {
+    use RequiresSameUser;
+
     public HabitEntryForm $form;
     #[Locked] public int $habitId;
     #[Locked] public string $date;
@@ -87,7 +90,7 @@ new #[Title('Record activity')] class extends Component
     }
 }; ?>
 
-<div class="max-w-2xl space-y-6" x-data="{ dirty: false }"
+<div class="max-w-2xl space-y-6" data-entry-editor x-data="{ dirty: false }"
     x-on:input="if ($event.target.closest('[data-entry-form]')) dirty = true" x-on:change="if ($event.target.closest('[data-entry-form]')) dirty = true" x-on:entry-loaded.window="dirty = false"
     x-on:livewire:navigate.window="if (dirty && !confirm('Leave this page and discard unsaved activity?')) $event.preventDefault()"
     x-on:beforeunload.window="if (dirty) { $event.preventDefault(); $event.returnValue = ''; }">

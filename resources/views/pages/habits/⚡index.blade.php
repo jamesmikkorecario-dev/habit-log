@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Concerns\RequiresSameUser;
 use App\Models\Category;
 use App\Models\Habit;
 use App\Actions\Habits\TransitionHabit;
@@ -12,6 +13,8 @@ use Livewire\WithPagination;
 
 new #[Title('Habits')] class extends Component
 {
+    use RequiresSameUser;
+
     use WithPagination;
 
     #[Url]
