@@ -17,6 +17,16 @@ class AuthenticationTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_login_preserves_session_feedback_and_escapes_it(): void
+    {
+        $this->withSession(['status' => 'Password reset <confirmed>'])
+            ->get(route('login'))
+            ->assertOk()
+            ->assertSee('role="status"', false)
+            ->assertSee('Password reset &lt;confirmed&gt;', false)
+            ->assertDontSee('Password reset <confirmed>', false);
+    }
+
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
         $user = User::factory()->create();
