@@ -77,3 +77,13 @@ Following is directional. Approve/Reject are available to the recipient; Cancel 
 ## Phase 7 usability corrections
 
 Desktop navigation can wrap and the header can grow when text is enlarged; links and account controls must remain reachable. Narrow screens keep the existing mobile menu. Heatmap cell borders use a stronger neutral outline while preserving the same performance bands, labels and scoring. Both journal and activity editors restore their original history position when browser Back/Forward navigation is cancelled with a dirty draft.
+
+## Public landing page
+
+The home route introduces habit.log using the existing fixed-dark Terminal Green palette, monospaced wordmark, Flux buttons/icons, and heatmap intensity bands. It contains navigation, a hero with Get Started, three feature groups, three onboarding steps, privacy guidance, an account-creation call to action, and a minimal footer. Copy describes implemented tracking, analytics, journal, and sharing behavior.
+
+The habit rows and heatmap are static, explicitly labelled illustrative samples. They never query or display account activity. Guests use the existing login and registration routes; signed-in visitors receive dashboard links. When registration is unavailable, onboarding links fall back to login.
+
+The layout stacks on narrow screens, keeps authentication links visible, and wraps controls when text is enlarged. A keyboard skip link targets the main landmark; headings, visible focus, text outcome cues, and reduced-motion styling support accessible navigation. The decorative sample heatmap is hidden from assistive technology and explained by its caption. No new theme, dependency, backend behavior, or database structure is introduced.
+
+Landing verification (2026-10-09): `docker compose exec -T app composer ci:check` passed Pint and 337 tests / 3,750 assertions; `docker compose exec -T app npm run build` passed. `HABIT_LOG_E2E=1 E2E_NODE='/mnt/c/Program Files/nodejs/node.exe' npm run test:e2e -- --grep landing` passed against compiled assets using installed Chrome and the isolated test database. Coverage includes real registration/login/dashboard links, keyboard skip and section links, 320–1440px layouts, desktop 200% text enlargement, fixed dark styling under light preference, reduced motion, no JavaScript page errors, and zero axe WCAG A/AA violations. Desktop/mobile screenshots were reviewed. Physical devices, other browser engines, and manual screen-reader operation were not tested.
