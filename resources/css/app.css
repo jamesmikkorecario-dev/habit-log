@@ -53,6 +53,11 @@
     @apply grid gap-2;
 }
 
+/* Shared outer alignment for authenticated navigation and page content. */
+.app-container {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6;
+}
+
 [data-flux-label] {
     @apply  !mb-0 !leading-tight;
 }

@@ -26,7 +26,7 @@ class InterfaceTest extends TrackingTestCase
     public function test_navigation_pagination_and_empty_state_do_not_create_entries(): void
     {
         $user = User::factory()->create();
-        Livewire::actingAs($user)->test('pages::tracking.index')->assertSee('No habits yet.');
+        Livewire::actingAs($user)->test('pages::tracking.index')->assertSee('Nothing to track just yet.');
         for ($i = 0; $i < 21; $i++) {
             $this->habit('boolean', ['name' => sprintf('Own %02d', $i)], $user);
         }
