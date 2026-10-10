@@ -18,7 +18,7 @@ class SessionBoundaryTest extends TrackingTestCase
         $other = User::factory()->create();
         $habit = $this->habit(user: $owner);
         foreach ([
-            'categories.index' => [], 'habits.index' => [], 'habits.create' => [],
+            'dashboard' => [], 'categories.index' => [], 'habits.index' => [], 'habits.create' => [],
             'habits.edit' => ['habit' => $habit->id], 'habits.show' => ['habit' => $habit->id],
             'tracking.index' => [], 'entries.index' => ['habit' => $habit->id],
             'entries.edit' => ['habit' => $habit->id, 'date' => $owner->localToday()],

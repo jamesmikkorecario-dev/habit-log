@@ -23,7 +23,7 @@ class DashboardTest extends TestCase
 
         $response = $this->get(route('dashboard'));
         $response->assertOk()
-            ->assertSee('Welcome, '.$user->displayName())
+            ->assertSee('Welcome back, '.$user->displayName())
             ->assertSee('wire:id=', false);
     }
 
@@ -37,8 +37,8 @@ class DashboardTest extends TestCase
 
         $response = $this->get(route('dashboard'));
         $response->assertOk()
-            ->assertSee('Welcome, Custom Display')
-            ->assertDontSee('Welcome, Registration Name');
+            ->assertSee('Welcome back, Custom Display')
+            ->assertDontSee('Welcome back, Registration Name');
     }
 
     public function test_dashboard_falls_back_to_name_when_no_display_name(): void
@@ -51,7 +51,7 @@ class DashboardTest extends TestCase
 
         $response = $this->get(route('dashboard'));
         $response->assertOk()
-            ->assertSee('Welcome, Fallback Name');
+            ->assertSee('Welcome back, Fallback Name');
     }
 
     public function test_navigation_shows_on_dashboard(): void

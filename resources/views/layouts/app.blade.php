@@ -146,7 +146,7 @@
             </nav>
 
             {{-- Main content --}}
-            <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">
+            <main class="mx-auto w-full {{ request()->routeIs('dashboard') ? 'max-w-[90rem]' : 'max-w-5xl' }} flex-1 px-4 py-8 sm:px-6">
                 {{ $slot }}
             </main>
         </div>
