@@ -41,7 +41,7 @@ test('authenticated pages share outer alignment and keep inner forms bounded', a
     // Wide outer layouts must not turn compact forms into full-width controls.
     for (const [path, selector, maximum] of [
         ['/journal', '[data-journal-writing]', 768],
-        ['/settings/profile', 'main form', 576],
+        ['/settings/profile', 'input[wire\\:model="username"]', 576],
         ['/categories', 'main form', 576],
         ['/people', 'main form', 576],
         ['/tracking', 'input[type="date"]', 224],
