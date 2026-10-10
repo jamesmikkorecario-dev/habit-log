@@ -68,7 +68,7 @@ test('habit form category dialog preserves drafts through validation, cancel, se
     await expect(dialog.getByRole('region', { name: 'Category recommendations' })).toBeVisible();
     await page.setViewportSize({ width: 390, height: 900 });
     await page.screenshot({ path: 'storage/app/habit-form-checks/category-390.png' });
-    await action(page, () => dialog.getByRole('button', { name: 'Create my category', exact: true }).click());
+    await action(page, () => dialog.getByRole('button', { name: 'Create a new category', exact: true }).click());
     await expect(dialog).not.toBeVisible();
     await expect(page.getByLabel('Category', { exact: true }).locator('option:checked')).toHaveText('Water breaks');
     for (const [label, value] of [['Habit name', 'Drink water'], ['Description (optional)', 'Keep this entire habit draft'], ['Goal (optional)', '8'], ['Unit (optional)', 'glasses'], ['Start date', '2026-01-01'], ['End date (optional)', '2026-12-31'], ['Visibility preference', 'followers']]) {
@@ -83,7 +83,7 @@ test('habit form category dialog preserves drafts through validation, cancel, se
     await action(page, () => trigger.click());
     await dialog.getByLabel('Category name', { exact: true }).fill('Water breaks');
     await action(page, () => dialog.getByRole('button', { name: 'Check for similar categories', exact: true }).click());
-    await action(page, () => dialog.getByRole('button', { name: 'Use Water breaks', exact: true }).click());
+    await action(page, () => dialog.getByRole('button', { name: 'Select category: Water breaks', exact: true }).click());
     await expect(dialog).not.toBeVisible();
     await expect(page.getByLabel('Habit name', { exact: true })).toHaveValue('Water with meals');
     await page.getByText('Learn about visibility', { exact: true }).focus();

@@ -18,7 +18,7 @@ test("custom category review and archive, trash, restore preserve the habit", as
             .click(),
     );
     await page
-        .getByRole("button", { name: "Create my category", exact: true })
+        .getByRole("button", { name: "Create category", exact: true })
         .click();
     await page.waitForURL(/\/habits\/create\?category=\d+$/);
     await expect(page.getByLabel("Category", { exact: true })).not.toHaveValue(
