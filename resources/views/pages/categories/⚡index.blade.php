@@ -19,10 +19,13 @@ new #[Title('Categories')] class extends Component
     public $description = '';
     #[Locked]
     public ?string $reviewedName = null;
+    #[Locked]
+    public bool $inline = false;
 
-    public function mount(): void
+    public function mount(bool $inline = false): void
     {
         $this->authorize('viewAny', Category::class);
+        $this->inline = $inline;
     }
 
     #[Computed]
@@ -76,7 +79,7 @@ new #[Title('Categories')] class extends Component
         unset($this->recommendations);
         $this->recommendations;
         if (auth()->user()->categories()->where('normalized_name', $data['normalized_name'])->exists()) {
-            $this->addError('name', 'You already have this category. Choose it from the list below.');
+            $this->addError('name', $this->inline ? 'You already have this category. Choose the matching suggestion or close this dialog and select it in your habit.' : 'You already have this category. Choose it from the list below.');
             return;
         }
         try {
@@ -86,7 +89,11 @@ new #[Title('Categories')] class extends Component
             if (! auth()->user()->categories()->where('normalized_name', $data['normalized_name'])->exists()) {
                 throw $exception;
             }
-            $this->addError('name', 'You already have this category. Choose it from the list below.');
+            $this->addError('name', $this->inline ? 'You already have this category. Choose the matching suggestion or close this dialog and select it in your habit.' : 'You already have this category. Choose it from the list below.');
+            return;
+        }
+        if ($this->inline) {
+            $this->dispatch('habit-category-selected', categoryId: $category->id);
             return;
         }
         session()->flash('status', 'Category created. You can now use it for a habit.');
@@ -97,35 +104,42 @@ new #[Title('Categories')] class extends Component
     {
         $category = Category::availableTo(auth()->user())->findOrFail($id);
         $this->authorize('view', $category);
+        if ($this->inline) {
+            $this->dispatch('habit-category-selected', categoryId: $category->id);
+            return;
+        }
         $this->redirectRoute('habits.create', ['category' => $category->id], navigate: true);
     }
 }; ?>
 
 <div class="space-y-8">
+    @unless($inline)
     <div>
         <h1 class="text-2xl font-semibold">Categories</h1>
         <p class="mt-2 text-sm text-zinc-400">Choose a category for your habit, or create one of your own.</p>
     </div>
-    <form wire:submit="review" class="max-w-xl space-y-4 rounded-xl border border-emerald-900/50 p-4 sm:p-6">
-        <h2 class="text-lg font-medium">Create a category</h2>
+    @endunless
+    <form wire:submit="review" @class(['max-w-xl space-y-4', 'rounded-xl border border-emerald-900/50 p-4 sm:p-6' => !$inline])>
+        @unless($inline)<h2 class="text-lg font-medium">Create a category</h2>@endunless
         <flux:input wire:model="name" label="Category name" maxlength="60" />
         <flux:textarea wire:model="description" label="Description (optional)" maxlength="500" rows="2" />
-        <flux:button type="submit" variant="primary">Check for similar categories</flux:button>
+        <flux:button type="submit" variant="primary" wire:loading.attr="disabled" class="min-h-11">Check for similar categories</flux:button>
         @if($reviewedName !== null)
             <div class="space-y-3" role="region" aria-label="Category recommendations" aria-live="polite">
                 <p class="text-sm text-zinc-300">Suggestions for “{{ $reviewedName }}”</p>
                 @forelse($this->recommendations as $category)
                     <div wire:key="suggestion-{{ $category->id }}" class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-zinc-900 p-3">
                         <span class="break-words">{{ $category->name }}</span>
-                        <flux:button type="button" wire:click="useCategory({{ $category->id }})" aria-label="Use {{ $category->name }}">Use this category</flux:button>
+                        <flux:button type="button" wire:click="useCategory({{ $category->id }})" aria-label="Use {{ $category->name }}" wire:loading.attr="disabled" class="min-h-11">Use this category</flux:button>
                     </div>
                 @empty
                     <p class="text-sm text-zinc-400">No matching categories found.</p>
                 @endforelse
-                <flux:button type="button" wire:click="save">Create my category</flux:button>
+                <flux:button type="button" wire:click="save" wire:loading.attr="disabled" class="min-h-11">Create my category</flux:button>
             </div>
         @endif
     </form>
+    @unless($inline)
     <section aria-labelledby="available-categories" class="space-y-3">
         <h2 id="available-categories" class="text-lg font-medium">Available categories</h2>
         <div class="grid gap-3 sm:grid-cols-2">
@@ -141,4 +155,5 @@ new #[Title('Categories')] class extends Component
             @endforelse
         </div>
     </section>
+    @endunless
 </div>

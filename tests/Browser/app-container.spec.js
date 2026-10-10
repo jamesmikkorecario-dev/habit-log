@@ -8,7 +8,7 @@ test('authenticated pages share outer alignment and keep inner forms bounded', a
     test.setTimeout(120_000);
     await register(page, 'containers');
     const habit = await createHabit(page, 'count', 'Container check');
-    const paths = ['/dashboard', '/tracking', '/journal', '/habits', '/categories', '/people', '/settings/profile'];
+    const paths = ['/dashboard', '/tracking', '/journal', '/habits', '/habits/create', `/habits/${habit}/edit`, '/categories', '/people', '/settings/profile'];
     for (const width of [375, 390, 768, 1024, 1440]) {
         await page.setViewportSize({ width, height: 960 });
         for (const path of paths) {
@@ -40,12 +40,12 @@ test('authenticated pages share outer alignment and keep inner forms bounded', a
     }
     // Wide outer layouts must not turn compact forms into full-width controls.
     for (const [path, selector, maximum] of [
-        ['/journal', '[data-journal-editor]', 672],
+        ['/journal', '[data-journal-writing]', 768],
         ['/settings/profile', 'main form', 576],
         ['/categories', 'main form', 576],
         ['/people', 'main form', 576],
         ['/tracking', 'input[type="date"]', 224],
-        [`/habits/${habit}/edit`, 'main > div', 672],
+        [`/habits/${habit}/edit`, 'input[type="number"]', 384],
         [`/habits/${habit}/entries/${new Date().toISOString().slice(0, 10)}`, '[data-entry-editor]', 672],
     ]) {
         await page.goto(path);

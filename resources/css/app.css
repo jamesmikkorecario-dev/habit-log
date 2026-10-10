@@ -58,6 +58,11 @@
     @apply mx-auto w-full max-w-7xl px-4 sm:px-6;
 }
 
+/* Keep habit-form anchors and focused fields clear of the measured sticky nav. */
+[data-habit-configuration] :is([id], input, textarea, select, button, summary, [tabindex]) {
+    scroll-margin-top: calc(var(--habit-nav-height, 57px) + 1rem);
+}
+
 [data-flux-label] {
     @apply  !mb-0 !leading-tight;
 }

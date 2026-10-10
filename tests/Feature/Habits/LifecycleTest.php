@@ -128,7 +128,7 @@ class LifecycleTest extends TestCase
         $this->assertSame(20, $component->instance()->habits->count());
         $component->call('setPage', 2)->assertDontSee($foreign->name);
         $this->assertSame(1, $component->instance()->habits->count());
-        $component->set('category', (string) Category::factory()->create()->id)->assertSee('No habits in this list');
+        $component->set('category', (string) Category::factory()->create()->id)->assertSee('No habits found in this category.');
         $component->set('tab', 'trash')->assertDontSee($foreign->name);
     }
 }
