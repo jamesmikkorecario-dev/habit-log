@@ -58,6 +58,32 @@
     @apply mx-auto w-full max-w-7xl px-4 sm:px-6;
 }
 
+/* Reserve the full path and cursor before JS runs, including without JS. */
+.terminal-path-visual {
+    position: relative;
+    display: inline-block;
+    white-space: pre;
+}
+.terminal-path-space { visibility: hidden; }
+.terminal-path-overlay { position: absolute; inset: 0; }
+.terminal-path-cursor {
+    display: inline-block;
+    width: 0.55em;
+    height: 0.85em;
+    margin-inline-start: 0.25em;
+    vertical-align: -0.05em;
+    background: currentColor;
+}
+[data-terminal-state="blinking"] .terminal-path-overlay .terminal-path-cursor {
+    animation: terminal-cursor-blink 600ms steps(1, end) 3;
+}
+@keyframes terminal-cursor-blink {
+    50% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .terminal-path-cursor { animation: none !important; }
+}
+
 /* Keep habit-form anchors and focused fields clear of the measured sticky nav. */
 [data-habit-configuration] :is([id], input, textarea, select, button, summary, [tabindex]) {
     scroll-margin-top: calc(var(--habit-nav-height, 57px) + 1rem);

@@ -60,7 +60,7 @@ new #[Title('Dashboard')] class extends Component
 <div class="min-w-0 space-y-8 sm:space-y-10">
     <header class="flex flex-col justify-between gap-6 xl:flex-row xl:items-end">
         <div class="min-w-0">
-            <p class="font-mono text-xs uppercase tracking-widest text-emerald-300">Your daily space</p>
+            <x-terminal-path path="~/dashboard" />
             <h1 class="mt-3 break-words text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">Welcome back, {{ $today['name'] }}.</h1>
             <p class="mt-3 text-zinc-400">A little progress, every day.</p>
             <p class="mt-3 font-mono text-xs text-zinc-400"><time datetime="{{ $today['date'] }}">{{ $today['date'] }}</time> · {{ $today['timezone'] }}</p>

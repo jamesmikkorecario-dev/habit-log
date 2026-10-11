@@ -121,7 +121,7 @@ new #[Title('Habits')] class extends Component
 <div class="min-w-0 space-y-6 sm:space-y-8" data-habits-management>
     <header class="flex flex-wrap items-start justify-between gap-5">
         <div>
-            <p class="font-mono text-xs uppercase tracking-widest text-emerald-300">Build your routine</p>
+            <x-terminal-path path="~/habits" />
             <h1 class="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">Your habits</h1>
             <p class="mt-3 text-sm leading-relaxed text-zinc-400">Small actions. Meaningful progress.</p>
         </div>

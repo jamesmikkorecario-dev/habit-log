@@ -60,7 +60,7 @@ new #[Title('People')] class extends Component
     x-on:relationship-changed.window="$nextTick(() => document.getElementById('people-heading')?.focus())">
     <header class="flex flex-wrap items-start justify-between gap-4">
         <div>
-            <p class="font-mono text-xs uppercase tracking-widest text-emerald-300">Connect with others</p>
+            <x-terminal-path path="~/people" />
             <h1 id="people-heading" tabindex="-1" class="mt-3 scroll-mt-24 text-3xl font-semibold tracking-tight text-zinc-100 focus-visible:outline-2 focus-visible:outline-emerald-300 sm:text-4xl">People</h1>
             <p class="mt-3 text-sm leading-relaxed text-zinc-400">Build connections. Share progress on your terms.</p>
         </div>

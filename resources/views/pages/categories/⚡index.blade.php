@@ -130,7 +130,7 @@ new #[Title('Categories')] class extends Component
 <div class="min-w-0 space-y-6 sm:space-y-8" x-data>
     @unless($inline)
         <header>
-            <p class="font-mono text-xs uppercase tracking-widest text-emerald-300">Organize your habits</p>
+            <x-terminal-path path="~/categories" />
             <h1 class="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">Categories</h1>
             <p class="mt-3 text-sm leading-relaxed text-zinc-400">Give your habits a place to belong.</p>
         </header>

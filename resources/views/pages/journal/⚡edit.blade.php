@@ -144,7 +144,7 @@ new #[Title('Private journal')] class extends Component
     x-on:beforeunload.window="if (dirty) { $event.preventDefault(); $event.returnValue = ''; }">
     <header class="flex flex-wrap items-end justify-between gap-4">
         <div>
-            <p class="font-mono text-xs uppercase tracking-widest text-emerald-300">Your private space</p>
+            <x-terminal-path path="~/journal" />
             <h1 id="journal-heading" tabindex="-1" class="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 focus-visible:outline-2 focus-visible:outline-emerald-300 sm:text-4xl">Private journal</h1>
             <p class="mt-3 text-zinc-400">A quiet space to reflect, one day at a time.</p>
         </div>

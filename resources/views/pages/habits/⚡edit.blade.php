@@ -146,7 +146,7 @@ new #[Title('Habit configuration')] class extends Component
     x-on:livewire:navigate.window="if (!$event.detail.history && dirty && !confirm('Leave this page and discard unsaved habit changes?')) $event.preventDefault()"
     x-on:beforeunload.window="if (dirty) { $event.preventDefault(); $event.returnValue = ''; }">
     <header>
-        <p class="font-mono text-xs uppercase tracking-widest text-emerald-300">Build your routine</p>
+        <x-terminal-path :path="$habitId === null ? '~/habits/create' : '~/habits/edit'" />
         <h1 class="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">{{ $habitId === null ? 'Create a habit' : 'Edit habit' }}</h1>
         <p class="mt-3 text-sm leading-relaxed text-zinc-400">{{ $habitId === null ? 'Start with one small action. Make it your own.' : 'Shape your routine as your needs change.' }}</p>
     </header>

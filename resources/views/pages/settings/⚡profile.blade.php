@@ -78,7 +78,7 @@ new #[Title('Profile Settings')] class extends Component
 
 <div class="min-w-0 space-y-6 sm:space-y-8">
     <header>
-        <p class="font-mono text-xs uppercase tracking-widest text-accent-content">Personalize your experience</p>
+        <x-terminal-path path="~/settings/profile" />
         <h1 class="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">Profile Settings</h1>
         <p class="mt-3 text-sm leading-relaxed text-zinc-400">Manage your identity, privacy, and preferences.</p>
     </header>

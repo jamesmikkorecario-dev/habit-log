@@ -93,7 +93,7 @@ new #[Title('Daily tracking')] class extends Component
 @endphp
 <div class="min-w-0 space-y-6 sm:space-y-8">
     <header>
-        <p class="font-mono text-xs uppercase tracking-widest text-emerald-300">Your daily check-in</p>
+        <x-terminal-path path="~/tracking" />
         <h1 class="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 sm:text-4xl">Daily tracking</h1>
         <p class="mt-3 text-zinc-400">Show up for yourself, one day at a time.</p>
     </header>
