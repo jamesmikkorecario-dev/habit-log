@@ -46,7 +46,7 @@ test('authenticated pages share outer alignment and keep inner forms bounded', a
         ['/people', 'main form', 576],
         ['/tracking', 'input[type="date"]', 224],
         [`/habits/${habit}/edit`, 'input[type="number"]', 384],
-        [`/habits/${habit}/entries/${new Date().toISOString().slice(0, 10)}`, '[data-entry-editor]', 672],
+        [`/habits/${habit}/entries/${new Date().toISOString().slice(0, 10)}`, '[data-entry-writing]', 768],
     ]) {
         await page.goto(path);
         const bounds = await page.locator(selector).first().boundingBox();
