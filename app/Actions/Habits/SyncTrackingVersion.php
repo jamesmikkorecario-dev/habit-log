@@ -18,7 +18,7 @@ class SyncTrackingVersion
         $latest = $habit->versions()->latest('effective_date')->first();
         $checkpoints = $habit->checkpoints()->get();
         $values = $habit->only(self::FIELDS);
-        if ($latest && $latest->only(self::FIELDS) == $values && $latest->checkpoints->map->only(['label', 'sort_order'])->all() == $checkpoints->map->only(['label', 'sort_order'])->all()) {
+        if ($latest && $this->configurationValues($latest) === $this->configurationValues($habit) && $latest->checkpoints->map->only(['label', 'sort_order'])->all() === $checkpoints->map->only(['label', 'sort_order'])->all()) {
             return;
         }
         $today = $user->localToday();
@@ -38,5 +38,18 @@ class SyncTrackingVersion
                 'habit_checkpoint_id' => $checkpoint->id, 'label' => $checkpoint->label, 'sort_order' => $checkpoint->sort_order,
             ])->save();
         }
+    }
+
+    private function configurationValues(Habit|HabitTrackingVersion $model): array
+    {
+        // Both models cast goals to int (preserving null). Compare calendar dates
+        // as values, not separate Carbon instances, and never coerce text or zero.
+        return [
+            'type' => $model->type->value,
+            'goal_value' => $model->goal_value,
+            'goal_unit' => $model->goal_unit,
+            'start_date' => $model->start_date->toDateString(),
+            'end_date' => $model->end_date?->toDateString(),
+        ];
     }
 }
