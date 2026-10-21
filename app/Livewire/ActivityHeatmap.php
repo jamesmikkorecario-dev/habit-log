@@ -134,6 +134,23 @@ class ActivityHeatmap extends Component
         return (int) $this->listPage;
     }
 
+    private function emptyMessage(array $period, bool $newAccount, bool $noCheckIns): ?string
+    {
+        // Presentation only: a valid zero must always retain its calculated value.
+        if ($period['percent'] !== null) {
+            return null;
+        }
+
+        return match (true) {
+            $newAccount => 'Create your first habit to get started.',
+            $period['unavailable'] > 0 => 'Some activity data is unavailable for this period.',
+            $period['pending'] > 0 && $noCheckIns => 'Your progress will appear after your first check-in.',
+            $period['pending'] > 0 => 'Some activity is still awaiting a check-in.',
+            $period['na'] > 0 => 'Not applicable for this period.',
+            default => 'No eligible activity for this period.',
+        };
+    }
+
     public function render()
     {
         $report = $this->activity;
@@ -141,8 +158,21 @@ class ActivityHeatmap extends Component
         $selected = $this->selectedDate === '' ? null : collect($report['cells'])->firstWhere('date', $this->selectedDate);
         abort_if($this->selectedDate !== '' && $selected === null, 422);
 
+        // Only the owner's dashboard may use account-wide onboarding context.
+        // Shared views rely exclusively on their already-authorized report.
+        $ownerDashboard = $this->subjectId === null && $this->habitId === null;
+        $newAccount = $ownerDashboard && $report['habit_count'] === 0
+            && ! auth()->user()->habits()->withTrashed()->exists();
+        $noCheckIns = $ownerDashboard && ($report['recent']['percent'] === null || $report['yearly']['percent'] === null)
+            && ! auth()->user()->habits()->withTrashed()->whereHas('entries', fn ($query) => $query->where('user_id', auth()->id()))->exists();
+
         return view('livewire.activity-heatmap', [
             'report' => $report,
+            'newAccount' => $newAccount,
+            'emptyMessages' => [
+                'recent' => $this->emptyMessage($report['recent'], $newAccount, $noCheckIns),
+                'yearly' => $this->emptyMessage($report['yearly'], $newAccount, $noCheckIns),
+            ],
             'selected' => $selected,
             'listCells' => array_slice($report['cells'], ($this->validPage() - 1) * 20, 20),
         ]);

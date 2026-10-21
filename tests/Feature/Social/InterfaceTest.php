@@ -97,6 +97,6 @@ class InterfaceTest extends TrackingTestCase
         Follow::factory()->create(['follower_id' => $unrelated->id, 'followed_id' => $subject->id]);
         $page = Livewire::actingAs($viewer)->test('pages::people.index')->assertDontSee('unrelated_requester')->assertDontSee('renamed_subject');
         $page->call('nextPage')->assertSee('renamed_subject')->assertDontSee('unrelated_requester');
-        $page->call('setTab', 'incoming')->assertSee('No relationships in this list.')->assertDontSee('unrelated_requester');
+        $page->call('setTab', 'incoming')->assertSee('No incoming requests.')->assertDontSee('unrelated_requester');
     }
 }

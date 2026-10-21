@@ -55,7 +55,16 @@ class HabitEntryForm extends Form
         if ($version->type !== HabitType::Checkpoint) {
             $rules['completed'][] = 'size:0';
         }
-        $data = Validator::make(['form' => $input], collect($rules)->mapWithKeys(fn ($rule, $key) => ['form.'.$key => $rule])->all())->validate()['form'];
+        $messages = in_array($version->type, [HabitType::Count, HabitType::Duration, HabitType::Avoidance], true) ? [
+            'form.status.required' => 'Choose an assessment.',
+            'form.status.in' => 'Choose a valid assessment.',
+            'form.value.required' => match ($version->type) {
+                HabitType::Duration => 'Enter the actual minutes.',
+                HabitType::Avoidance => 'Enter the number of occurrences.',
+                default => 'Enter the actual count.',
+            },
+        ] : [];
+        $data = Validator::make(['form' => $input], collect($rules)->mapWithKeys(fn ($rule, $key) => ['form.'.$key => $rule])->all(), $messages)->validate()['form'];
         if ($version->type === HabitType::Checkpoint && ! $na) {
             $count = count($data['completed']);
             $data['status'] = $count === $version->checkpoints->count() ? 'completed' : ($count ? 'partial' : 'missed');

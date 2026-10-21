@@ -15,7 +15,7 @@ test("known numeric score, historical setup, stale activity and heatmap navigati
     await page.getByRole("link", { name: "Record today", exact: true }).click();
     await action(page, () =>
         page
-            .getByLabel("Your outcome", { exact: true })
+            .getByLabel("Your assessment", { exact: true })
             .selectOption("completed"),
     );
     await page.locator("#entry-value").fill("5");

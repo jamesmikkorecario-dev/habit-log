@@ -10,7 +10,7 @@
                 class="sticky top-0 z-40 border-b border-emerald-900/50 bg-zinc-950/95 backdrop-blur supports-[backdrop-filter]:bg-zinc-950/80"
                 x-data="{ mobileOpen: false }"
             >
-                <div class="mx-auto max-w-5xl px-4 sm:px-6">
+                <div class="app-container">
                     <div class="flex min-h-14 items-center justify-between gap-3 py-2">
                         {{-- Branding --}}
                         <a
@@ -92,7 +92,7 @@
 
                 {{-- Mobile menu --}}
                 <div x-show="mobileOpen" x-cloak x-transition class="border-t border-emerald-900/50 lg:hidden motion-reduce:transition-none!">
-                    <div class="space-y-1 px-4 py-3">
+                    <div class="app-container space-y-1 py-3">
                         <a
                             href="{{ route('dashboard') }}"
                             class="block rounded-md px-3 py-2 font-mono text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-300 {{ request()->routeIs('dashboard') ? 'bg-emerald-950/50 text-emerald-300' : 'text-zinc-400 hover:bg-emerald-950/30 hover:text-emerald-300' }}"
@@ -117,7 +117,7 @@
                             Settings
                         </a>
                     </div>
-                    <div class="border-t border-emerald-900/50 px-4 py-3">
+                    <div class="app-container border-t border-emerald-900/50 py-3">
                         <p class="truncate px-3 font-mono text-sm text-zinc-100">{{ auth()->user()->displayName() }}</p>
                         @if(auth()->user()->username)
                             <p class="truncate px-3 font-mono text-xs text-zinc-500">{{ '@' . auth()->user()->username }}</p>
@@ -146,7 +146,7 @@
             </nav>
 
             {{-- Main content --}}
-            <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">
+            <main class="app-container min-w-0 flex-1 py-8">
                 {{ $slot }}
             </main>
         </div>

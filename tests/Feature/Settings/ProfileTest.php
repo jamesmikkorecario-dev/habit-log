@@ -14,6 +14,22 @@ class ProfileTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_unicode_bio_counter_boundary_and_failed_save_preserve_draft(): void
+    {
+        $user = User::factory()->create(['bio' => 'Saved bio', 'timezone' => 'Asia/Manila']);
+        $page = Livewire::actingAs($user)->test('pages::settings.profile')
+            ->assertSee('Profile information')->assertSee('Privacy')->assertSee('Preferences')
+            ->assertSee('Learn about privacy')->assertSet('timezone', 'Asia/Manila');
+        $page->set('bio', str_repeat('🌱', 161))->set('display_name', 'My draft')->call('save')
+            ->assertHasErrors('bio')->assertNotDispatched('profile-updated')
+            ->assertSet('bio', str_repeat('🌱', 161))->assertSet('display_name', 'My draft')
+            ->assertSee('Your changes have not been saved.');
+        $this->assertSame('Saved bio', $user->fresh()->bio);
+        $page->set('bio', str_repeat('🌱', 160))->call('save')->assertHasNoErrors()->assertDispatched('profile-updated');
+        $this->assertSame(str_repeat('🌱', 160), $user->fresh()->bio);
+        $this->assertSame('Asia/Manila', $user->fresh()->timezone);
+    }
+
     // ---------------------------------------------------------------
     // Access control
     // ---------------------------------------------------------------

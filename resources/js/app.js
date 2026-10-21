@@ -1,3 +1,5 @@
+import './terminal-path';
+
 // Track history positions so cancelling Back/Forward can restore the original
 // entry before Livewire consumes popstate. No draft content enters history.
 const positionKey = 'habitLogPosition';
@@ -24,13 +26,15 @@ window.addEventListener('popstate', (event) => {
     }
 
     const destination = event.state?.[positionKey];
-    const editor = document.querySelector('[data-journal-editor], [data-entry-editor]');
+    const editor = document.querySelector('[data-journal-editor], [data-entry-editor], [data-habit-configuration]');
     const dirty = editor && window.Alpine?.$data(editor).dirty;
 
     if (dirty && Number.isInteger(destination) && destination !== position) {
         const message = editor.matches('[data-journal-editor]')
             ? 'Leave this page and discard unsaved journal changes?'
-            : 'Leave this page and discard unsaved activity?';
+            : editor.matches('[data-habit-configuration]')
+                ? 'Leave this page and discard unsaved habit changes?'
+                : 'Leave this page and discard unsaved activity?';
         if (!confirm(message)) {
             event.stopImmediatePropagation();
             restoring = true;

@@ -35,7 +35,7 @@ class JournalTest extends TestCase
     public function test_create_edit_clear_mood_reload_and_delete_with_confirmation(): void
     {
         $user = User::factory()->create();
-        $page = $this->editor($user)->assertSee('No journal for this date.')->set('form.content', " 0\nSecond line ")->set('form.mood', '5')->call('save')->assertHasNoErrors()->assertSee('Journal saved.');
+        $page = $this->editor($user)->assertSee('No entry for this day yet.')->set('form.content', " 0\nSecond line ")->set('form.mood', '5')->call('save')->assertHasNoErrors()->assertSee('Journal saved.');
         $journal = $user->journals()->sole();
         $this->assertSame("0\nSecond line", $journal->content);
         $this->assertSame(5, $journal->mood);

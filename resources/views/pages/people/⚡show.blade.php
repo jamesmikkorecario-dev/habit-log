@@ -55,25 +55,31 @@ new #[Title('Profile')] class extends Component
 <div class="space-y-6" x-data="{ followOrigin: null }" x-on:click="followOrigin = $event.target.closest('[data-follow-trigger]') ?? followOrigin"
     x-on:relationship-changed.window="$nextTick(() => document.getElementById('people-heading')?.focus())">
     <a href="{{ route('people.index') }}" wire:navigate class="text-emerald-300 underline">People</a>
-    <header class="space-y-2">
-        <h1 id="people-heading" tabindex="-1" class="break-words text-2xl font-semibold focus-visible:outline-2 focus-visible:outline-emerald-300">{{ $this->profile['name'] }}</h1>
-        <p>{{ '@'.$this->profile['username'] }} · {{ $this->profile['private'] ? 'Private account' : 'Public account' }}</p>
-    </header>
-    @if($this->profile['own'])
-        <p class="text-sm text-zinc-400">This is your profile. You see your private habits; other people see only habits they may access.</p>
-    @elseif(!$this->profile['canFollow'])
-        <a class="text-emerald-300 underline" href="{{ route('settings.profile') }}" wire:navigate>Choose a username to follow people</a>
-    @elseif($this->profile['relationshipStatus'] === 'pending')
-        <p>Follow request pending.</p>
-        <flux:button wire:click="changeFollow({{ $this->profile['relationshipId'] }}, 'cancel')" wire:loading.attr="disabled">Cancel request</flux:button>
-    @elseif($this->profile['relationshipStatus'] === 'accepted')
-        <p>Following</p>
-        <flux:button data-follow-trigger wire:click="confirmFollowRemoval({{ $this->profile['relationshipId'] }}, 'unfollow')" wire:loading.attr="disabled">Unfollow</flux:button>
-    @else
-        <flux:button wire:click="follow({{ $subjectId }})" wire:loading.attr="disabled">{{ $this->profile['private'] ? 'Request to follow' : 'Follow' }}</flux:button>
-    @endif
-    <p role="status" class="text-emerald-300">{{ $feedback }}</p>
-    <flux:error name="relationship" />
+    <section aria-label="Profile and connection" class="max-w-2xl space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/30 p-5 sm:p-6">
+        <header class="flex min-w-0 items-start gap-3">
+            <span aria-hidden="true" class="flex size-11 shrink-0 items-center justify-center rounded-full border border-emerald-900/60 bg-emerald-950/20 font-mono text-lg text-emerald-300">{{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($this->profile['name'], 0, 1)) }}</span>
+            <div class="min-w-0 space-y-2">
+                <h1 id="people-heading" tabindex="-1" class="scroll-mt-24 break-words text-2xl font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-emerald-300">{{ $this->profile['name'] }}</h1>
+                <p class="break-all font-mono text-sm text-zinc-400">{{ '@'.$this->profile['username'] }}</p>
+                <p class="text-sm text-zinc-300">{{ $this->profile['private'] ? 'Private account' : 'Public account' }}</p>
+            </div>
+        </header>
+        @if($this->profile['own'])
+            <p class="text-sm text-zinc-400">This is your profile. You see your private habits; other people see only habits they may access.</p>
+        @elseif(!$this->profile['canFollow'])
+            <a class="text-emerald-300 underline" href="{{ route('settings.profile') }}" wire:navigate>Choose a username to follow people</a>
+        @elseif($this->profile['relationshipStatus'] === 'pending')
+            <p class="text-sm text-zinc-300">Follow request pending.</p>
+            <flux:button wire:click="changeFollow({{ $this->profile['relationshipId'] }}, 'cancel')" wire:loading.attr="disabled" variant="outline" class="min-h-11">Cancel request</flux:button>
+        @elseif($this->profile['relationshipStatus'] === 'accepted')
+            <p class="text-sm text-emerald-300">Following</p>
+            <flux:button data-follow-trigger wire:click="confirmFollowRemoval({{ $this->profile['relationshipId'] }}, 'unfollow')" wire:loading.attr="disabled" variant="outline" class="min-h-11">Unfollow</flux:button>
+        @else
+            <flux:button wire:click="follow({{ $subjectId }})" wire:loading.attr="disabled" variant="primary" class="min-h-11">{{ $this->profile['private'] ? 'Request to follow' : 'Follow' }}</flux:button>
+        @endif
+        <p role="status" class="text-emerald-300">{{ $feedback }}</p>
+        <flux:error name="relationship" />
+    </section>
     <flux:button wire:click="refreshRelationships" wire:loading.attr="disabled">Refresh profile</flux:button>
     @if(!$this->profile['allowed'])
         <p>This account is private. An accepted follow request is required to see shared activity.</p>

@@ -1,12 +1,20 @@
-<x-layouts::auth :title="__('Register')">
+<x-layouts::auth.split :title="__('Register')">
     <div class="flex flex-col gap-6">
-        <x-auth-header :title="__('Create an account')" :description="__('Enter your details below to create your account')" />
+        <div>
+            <p class="font-mono text-xs uppercase tracking-widest text-emerald-300">{{ __('Your first step') }}</p>
+            <h1 class="mt-3 text-3xl font-semibold tracking-tight">{{ __('Create your account.') }}</h1>
+            <p class="mt-3 text-sm leading-relaxed text-zinc-400">{{ __('Create your account. Start with one small habit.') }}</p>
+        </div>
 
         <!-- Session Status -->
-        <x-auth-session-status class="text-center" :status="session('status')" />
+        <x-auth-session-status class="rounded-md border border-emerald-800 bg-emerald-950/40 p-3 text-emerald-300!" role="status" :status="session('status')" />
 
-        <form method="POST" action="{{ route('register.store') }}" class="flex flex-col gap-6">
+        <form method="POST" action="{{ route('register.store') }}" class="flex flex-col gap-5" x-data="{ submitting: false }" x-on:submit="submitting = true" x-on:pageshow.window="submitting = false" x-bind:aria-busy="submitting">
             @csrf
+
+            @if ($errors->any())
+                <p role="alert" class="rounded-md border border-red-800 bg-red-950/30 p-3 text-sm text-red-300">{{ __('Please check the highlighted fields and try again.') }}</p>
+            @endif
             <!-- Name -->
             <flux:input
                 name="name"
@@ -55,15 +63,15 @@
             />
 
             <div class="flex items-center justify-end">
-                <flux:button type="submit" variant="primary" class="w-full" data-test="register-user-button">
-                    {{ __('Create account') }}
+                <flux:button type="submit" variant="primary" class="min-h-12 w-full" x-bind:disabled="submitting" :loading="false" data-test="register-user-button">
+                    <span x-text="submitting ? @js(__('Creating account…')) : @js(__('Create account'))">{{ __('Create account') }}</span>
                 </flux:button>
             </div>
         </form>
 
-        <div class="space-x-1 rtl:space-x-reverse text-center text-sm text-zinc-600 dark:text-zinc-400">
+        <div class="flex flex-wrap items-center justify-center gap-x-2 border-t border-zinc-800 pt-4 text-sm text-zinc-400">
             <span>{{ __('Already have an account?') }}</span>
-            <flux:link :href="route('login')" wire:navigate>{{ __('Log in') }}</flux:link>
+            <flux:link class="inline-flex min-h-11 items-center" :href="route('login')" wire:navigate>{{ __('Log in') }}</flux:link>
         </div>
     </div>
-</x-layouts::auth>
+</x-layouts::auth.split>

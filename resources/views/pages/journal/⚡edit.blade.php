@@ -130,51 +130,98 @@ new #[Title('Private journal')] class extends Component
     }
 }; ?>
 
-<div class="max-w-2xl space-y-6" data-journal-editor x-data="{ dirty: false }"
+<div class="min-w-0 space-y-6 sm:space-y-8" data-journal-editor x-data="{
+        dirty: false,
+        get characterCount() {
+            return Array.from(String($wire.form.content ?? '').replace(/^\p{White_Space}+|\p{White_Space}+$/gu, '')).length;
+        }
+    }"
     x-on:input="if ($event.target.closest('[data-journal-form]')) dirty = true"
     x-on:change="if ($event.target.closest('[data-journal-form]')) dirty = true"
     x-on:journal-loaded.window="dirty = false"
     x-on:journal-deleted.window="$nextTick(() => document.getElementById('journal-heading')?.focus())"
     x-on:livewire:navigate.window="if (!$event.detail.history && dirty && !confirm('Leave this page and discard unsaved journal changes?')) { $event.preventDefault(); $wire.selectedDate = $wire.date; }"
     x-on:beforeunload.window="if (dirty) { $event.preventDefault(); $event.returnValue = ''; }">
-    <div>
-        <h1 id="journal-heading" tabindex="-1" class="text-2xl font-semibold focus-visible:outline-2 focus-visible:outline-emerald-300">Private journal</h1>
-        <p class="mt-2 text-sm text-zinc-400">{{ $date }} · {{ $timezone }}</p>
-        <p class="mt-2 text-sm text-zinc-400">Only you can read your journal and mood.</p>
+    <header class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+            <x-terminal-path path="~/journal" />
+            <h1 id="journal-heading" tabindex="-1" class="mt-3 text-3xl font-semibold tracking-tight text-zinc-100 focus-visible:outline-2 focus-visible:outline-emerald-300 sm:text-4xl">Private journal</h1>
+            <p class="mt-3 text-zinc-400">A quiet space to reflect, one day at a time.</p>
+        </div>
+        <p class="flex items-center gap-2 text-sm text-zinc-400"><flux:icon.lock-closed class="size-4 shrink-0 text-emerald-300" aria-hidden="true" />Only you can read your journal and mood.</p>
+    </header>
+
+    <div class="grid min-w-0 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] lg:gap-8">
+        <section aria-label="Choose a journal date" class="min-w-0 space-y-5 rounded-xl border border-zinc-800 bg-zinc-900/30 p-5 sm:p-6">
+            <div>
+                <p class="text-xs font-medium text-zinc-400">Selected day{{ $date === $this->today ? ' · Today' : '' }}</p>
+                <p class="mt-2 text-xl font-semibold"><time datetime="{{ $date }}">{{ \Carbon\CarbonImmutable::parse($date)->format('l, F j, Y') }}</time></p>
+                <p class="mt-2 break-words font-mono text-xs text-zinc-400">{{ $date }} · {{ $timezone }}</p>
+            </div>
+            <div class="flex flex-wrap gap-2" role="group" aria-label="Journal dates">
+                @if($this->previousDate)<flux:button :href="route('journal.index', ['date' => $this->previousDate])" aria-label="Previous day" icon="chevron-left" class="min-h-11" wire:navigate>Previous</flux:button>@endif
+                <flux:button :href="route('journal.index')" class="min-h-11" wire:navigate>Today</flux:button>
+                @if($this->nextDate)<flux:button :href="route('journal.index', ['date' => $this->nextDate])" aria-label="Next day" icon:trailing="chevron-right" class="min-h-11" wire:navigate>Next</flux:button>@endif
+            </div>
+            <form wire:submit="goToDate" class="flex min-w-0 flex-wrap items-end gap-3 border-t border-zinc-800 pt-5">
+                <div class="min-w-0 w-full sm:max-w-56">
+                    <flux:input wire:model="selectedDate" type="date" label="Journal date" min="1000-01-01" :max="max($date, $this->today)" />
+                </div>
+                <flux:button type="submit" class="min-h-11" wire:loading.attr="disabled">Go to date</flux:button>
+                <p class="w-full text-xs leading-relaxed text-zinc-400">Choose a day to revisit. Unsaved writing stays here unless you confirm leaving.</p>
+            </form>
+            <flux:error name="date" />
+        </section>
+
+        <section aria-labelledby="reflection-heading" class="w-full min-w-0 max-w-3xl justify-self-center rounded-xl border border-zinc-800 bg-zinc-900/30 lg:justify-self-end" data-journal-writing>
+            <header class="border-b border-zinc-800 p-5 sm:p-6">
+                <h2 id="reflection-heading" class="text-xl font-semibold">{{ $date === $this->today ? "Today's reflection" : 'Daily reflection' }}</h2>
+                @if($date > $this->today)
+                    <p role="status" class="mt-2 text-sm leading-relaxed text-zinc-400">This saved date is in the future in your current timezone. Your journal is read-only until that day.</p>
+                @elseif($entryId === null)
+                    <p class="mt-2 text-sm leading-relaxed text-zinc-400">No entry for this day yet. Your space is ready whenever you are.</p>
+                @else
+                    <p class="mt-2 text-sm leading-relaxed text-zinc-400">Return to your thoughts. Save when you are ready.</p>
+                @endif
+            </header>
+            <div class="space-y-5 p-5 sm:p-6">
+                <p role="status" aria-live="polite" class="empty:hidden text-sm text-emerald-300">{{ $feedback }}</p>
+                <flux:error name="conflict" />
+                <form wire:submit="save" class="space-y-5" data-journal-form>
+                    <fieldset class="min-w-0 space-y-5" wire:loading.attr="disabled" @disabled($date > $this->today)>
+                        <div class="space-y-2">
+                            <flux:textarea id="journal-content" label:id="journal-content-label" aria-labelledby="journal-content-label" aria-describedby="journal-text-help journal-count" wire:model="form.content" label="Journal text" placeholder="What's on your mind today?" rows="12" class="text-base! leading-relaxed! p-4!" />
+                            <div class="flex flex-wrap justify-between gap-x-4 gap-y-2 text-xs text-zinc-400">
+                                <p id="journal-text-help" class="max-w-sm leading-relaxed">Required. Plain text only. Leading and trailing whitespace is ignored.</p>
+                                <p id="journal-count" class="font-mono tabular-nums" :class="characterCount > 10000 ? 'text-red-300' : 'text-zinc-400'"><span x-text="characterCount.toLocaleString('en-US')">{{ is_string($form->content) ? number_format(mb_strlen(preg_replace('/^\s+|\s+$/u', '', $form->content))) : 0 }}</span> / 10,000 characters</p>
+                            </div>
+                        </div>
+                        <div class="max-w-sm">
+                            <flux:select id="journal-mood" wire:model="form.mood" label="Mood (optional)" description="How did this day feel? Leave it unset if you prefer.">
+                                <flux:select.option value="">Not set</flux:select.option>
+                                @foreach([1 => 'Very low', 2 => 'Low', 3 => 'Okay', 4 => 'Good', 5 => 'Very good'] as $value => $label)
+                                    <flux:select.option :value="$value">{{ $value }} — {{ $label }}</flux:select.option>
+                                @endforeach
+                            </flux:select>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-3 border-t border-zinc-800 pt-5">
+                            @if($date <= $this->today)<flux:button type="submit" variant="primary" class="min-h-11" wire:loading.attr="disabled">Save journal</flux:button>@endif
+                            @if($date <= $this->today)<flux:button type="button" wire:click="loadEntry" wire:confirm="Reload this journal and discard unsaved input?" variant="ghost" class="min-h-11" wire:loading.attr="disabled">Reload journal</flux:button>@endif
+                            <span x-show="dirty" x-cloak class="text-xs text-zinc-400">Unsaved changes</span>
+                        </div>
+                    </fieldset>
+                </form>
+                @if($date > $this->today)
+                    <flux:button wire:click="loadEntry" wire:confirm="Reload this journal and discard unsaved input?" variant="ghost" class="min-h-11" wire:loading.attr="disabled">Reload journal</flux:button>
+                @endif
+                @if($entryId !== null && $date <= $this->today)
+                    <div class="border-t border-zinc-800 pt-4">
+                        <flux:button id="journal-delete-trigger" variant="ghost" class="min-h-11 text-red-300!" x-on:click="if (!dirty || confirm('Deleting this journal will also discard your unsaved changes. Continue to confirmation?')) $wire.confirmDeletion()" wire:loading.attr="disabled">Delete journal</flux:button>
+                    </div>
+                @endif
+            </div>
+        </section>
     </div>
-    <div class="flex flex-wrap gap-2" aria-label="Journal dates">
-        @if($this->previousDate)<flux:button :href="route('journal.index', ['date' => $this->previousDate])" wire:navigate>Previous day</flux:button>@endif
-        <flux:button :href="route('journal.index')" wire:navigate>Today</flux:button>
-        @if($this->nextDate)<flux:button :href="route('journal.index', ['date' => $this->nextDate])" wire:navigate>Next day</flux:button>@endif
-    </div>
-    <form wire:submit="goToDate" class="flex flex-wrap items-end gap-3">
-        <flux:input wire:model="selectedDate" type="date" label="Journal date" min="1000-01-01" :max="max($date, $this->today)" />
-        <flux:button type="submit" wire:loading.attr="disabled">Go to date</flux:button>
-    </form>
-    <p role="status" aria-live="polite" class="text-emerald-300">{{ $feedback }}</p>
-    <flux:error name="date" />
-    <flux:error name="conflict" />
-    <flux:button wire:click="loadEntry" wire:confirm="Reload this journal and discard unsaved input?" wire:loading.attr="disabled">Reload journal</flux:button>
-    @if($date > $this->today)
-        <p role="status">This saved date is in the future in your current timezone. Your journal is read-only until that day.</p>
-    @elseif($entryId === null)
-        <p class="text-sm text-zinc-400">No journal for this date. Write when you are ready.</p>
-    @endif
-    <form wire:submit="save" class="space-y-5" data-journal-form>
-        <fieldset class="space-y-5" wire:loading.attr="disabled" @disabled($date > $this->today)>
-            <flux:textarea id="journal-content" label:id="journal-content-label" aria-labelledby="journal-content-label" wire:model="form.content" label="Journal text" description="Required. Up to 10,000 characters. Plain text only." maxlength="10000" rows="10" />
-            <flux:select id="journal-mood" wire:model="form.mood" label="Mood (optional)">
-                <flux:select.option value="">Not set</flux:select.option>
-                @foreach([1 => 'Very low', 2 => 'Low', 3 => 'Okay', 4 => 'Good', 5 => 'Very good'] as $value => $label)
-                    <flux:select.option :value="$value">{{ $value }} — {{ $label }}</flux:select.option>
-                @endforeach
-            </flux:select>
-            @if($date <= $this->today)<flux:button type="submit" variant="primary" wire:loading.attr="disabled">Save journal</flux:button>@endif
-        </fieldset>
-    </form>
-    @if($entryId !== null && $date <= $this->today)
-        <flux:button id="journal-delete-trigger" variant="danger" x-on:click="if (!dirty || confirm('Deleting this journal will also discard your unsaved changes. Continue to confirmation?')) $wire.confirmDeletion()" wire:loading.attr="disabled">Delete journal</flux:button>
-    @endif
     <flux:modal name="delete-journal" wire:model="showDeleteModal" wire:close="cancelDeletion"
         x-init="$el.querySelector('dialog').setAttribute('aria-labelledby', 'journal-delete-title'); $el.querySelector('dialog').setAttribute('aria-describedby', 'journal-delete-description')"
         x-on:close="$nextTick(() => (document.getElementById('journal-delete-trigger') ?? document.getElementById('journal-heading'))?.focus())"
