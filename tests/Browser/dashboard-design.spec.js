@@ -131,7 +131,7 @@ test('dashboard populated daily habits, leap-year alignment and accessible navig
     await expect(page).toHaveURL(new RegExp(`/habits/${count}$`));
     for (const date of ['2024-02-29', today]) {
         await page.goto(`/habits/${count}/entries/${date}`);
-        await action(page, () => page.getByLabel('Your outcome', { exact: true }).selectOption('partial'));
+        await action(page, () => page.getByLabel('Your assessment', { exact: true }).selectOption('partial'));
         await page.locator('#entry-value').fill('5');
         await action(page, () => page.getByRole('button', { name: 'Save activity', exact: true }).click());
     }

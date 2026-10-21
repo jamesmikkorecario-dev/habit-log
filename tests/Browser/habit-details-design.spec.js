@@ -74,7 +74,7 @@ test('habit details separates current and upcoming setup while preserving analyt
         await expect(page.getByRole('link', { name: label, exact: true })).toHaveAttribute('href', `http://127.0.0.1:8017${href}`);
     }
     await page.getByRole('link', { name: 'Record today', exact: true }).click();
-    await action(page, () => page.getByLabel('Your outcome', { exact: true }).selectOption('partial'));
+    await action(page, () => page.getByLabel('Your assessment', { exact: true }).selectOption('partial'));
     await page.locator('#entry-value').fill('5');
     await page.locator('#entry-note').fill('PRIVATE DETAIL NOTE');
     await action(page, () => page.getByRole('button', { name: 'Save activity', exact: true }).click());

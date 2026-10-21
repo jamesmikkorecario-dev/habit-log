@@ -54,6 +54,8 @@ class EditorDesignTest extends TrackingTestCase
         $page = $this->editor($habit, '2026-10-11')->set('form.note', 'Keep this private draft')
             ->call('save')->assertHasErrors(['form.status', 'form.value'])
             ->assertSee('Review the highlighted fields. Your changes have not been saved.')
+            ->assertSee('Choose an assessment.')->assertSee('Enter the actual count.')
+            ->assertDontSee('The form.status field')->assertDontSee('The form.value field')
             ->assertSet('form.note', 'Keep this private draft')->assertSet('feedback', '');
         $page->set('form.status', 'partial')->set('form.value', '5')->call('save')->assertHasNoErrors()
             ->assertSee('Editing saved activity.')->assertSet('feedback', 'Activity saved.')->assertSet('entryRevision', 1);
@@ -81,10 +83,69 @@ class EditorDesignTest extends TrackingTestCase
     public function test_zero_maximum_and_goal_free_numeric_guidance_use_the_dated_setup(): void
     {
         $habit = $this->habit('avoidance', ['goal_value' => 0, 'goal_unit' => 'times']);
-        $this->editor($habit, '2026-10-11')->assertSee('Acceptable maximum')->assertSee('A zero maximum means abstinence.')
-            ->assertSee('At or below your maximum counts as success.');
+        $this->editor($habit, '2026-10-11')->assertSee('Maximum: 0')->assertSee('Complete avoidance requires zero occurrences.')
+            ->assertSee('Performance is 100% at zero, otherwise 0%.');
         $count = $this->habit('count');
-        $this->editor($count, '2026-10-11')->assertSee('Without a numeric goal, Completed / Partial / Missed scores 100% / 50% / 0%.');
+        $this->editor($count, '2026-10-11')->assertSee('Assessment determines performance: Completed 100%, Partial 50%, Missed 0%.');
+    }
+
+    public function test_count_labels_and_guidance_use_the_selected_dates_configuration(): void
+    {
+        $habit = $this->habit('count', ['goal_value' => 20, 'goal_unit' => 'pages']);
+        $this->editor($habit, '2026-10-10')->assertSee('Actual count (pages)')->assertSee('Your assessment')
+            ->assertDontSee('Your outcome')
+            ->assertSee('Performance is calculated from count ÷ goal; assessment is stored separately.')
+            ->set('form.status', 'partial')->set('form.value', 10)->call('save')->assertHasNoErrors();
+        $this->editConfiguration($habit, ['goal_value' => null, 'goal_unit' => 'chapters']);
+        $this->editor($habit, '2026-10-10')->assertSee('Actual count (pages)')->assertDontSee('Actual count (chapters)')
+            ->assertSee('Performance is calculated from count ÷ goal; assessment is stored separately.')
+            ->assertSet('form.value', 10);
+        $this->travel(1)->days();
+        $this->editor($habit, '2026-10-12')->assertSee('Actual count (chapters)')
+            ->assertSee('Assessment determines performance: Completed 100%, Partial 50%, Missed 0%.');
+        $unitless = $this->habit('count');
+        $this->editor($unitless, '2026-10-12')->assertSee('Actual count')->assertDontSee('Actual count (')
+            ->set('form.status', 'invalid')->set('form.value', '-1')->call('save')
+            ->assertHasErrors(['form.status', 'form.value'])->assertSee('Choose a valid assessment.')
+            ->assertSee('Enter a whole number from 0 to 999,999,999.');
+    }
+
+    public function test_duration_messages_and_guidance_follow_dated_goals_without_changing_saved_minutes(): void
+    {
+        $habit = $this->habit('duration', ['goal_value' => 30]);
+        $guidance = 'Performance is calculated from recorded minutes ÷ goal (capped at 100%); assessment is stored separately.';
+        $page = $this->editor($habit, '2026-10-10')->assertSee('Your assessment')->assertDontSee('Your outcome')
+            ->assertSee('Actual minutes')->assertSee($guidance)->call('save')
+            ->assertHasErrors(['form.status', 'form.value'])->assertSee('Choose an assessment.')
+            ->assertSee('Enter the actual minutes.')->assertDontSee('The form.status field')->assertDontSee('The form.value field');
+        $page->set('form.status', 'invalid')->set('form.value', '1.5')->call('save')
+            ->assertHasErrors(['form.status', 'form.value'])->assertSee('Choose a valid assessment.')
+            ->assertSee('Enter a whole number from 0 to 999,999,999.');
+        $page->set('form.status', 'partial')->set('form.value', 15)->call('save')->assertHasNoErrors();
+        $page->set('form.status', 'not_applicable')->call('save')->assertHasNoErrors();
+        $this->assertSame(15, $habit->entries()->sole()->value);
+        $this->editConfiguration($habit, ['goal_value' => null]);
+        $this->editor($habit, '2026-10-10')->assertSee($guidance)->assertSet('form.value', 15);
+        $this->travel(1)->days();
+        $this->editor($habit, '2026-10-12')
+            ->assertSee('Assessment determines performance: Completed 100%, Partial 50%, Missed 0%.')
+            ->assertDontSee($guidance)->assertSet('form.value', '');
+    }
+
+    public function test_avoidance_readable_errors_and_dated_guidance_preserve_zero_and_absence(): void
+    {
+        $habit = $this->habit('avoidance', ['goal_value' => 0, 'goal_unit' => 'cups']);
+        $this->editor($habit, '2026-10-11')->assertSee('Your assessment')->assertSee('Occurrences (cups)')
+            ->assertSee('Maximum: 0')->assertDontSee('No maximum set.')
+            ->call('save')->assertHasErrors(['form.status', 'form.value'])
+            ->assertSee('Choose an assessment.')->assertSee('Enter the number of occurrences.')
+            ->assertDontSee('The form.status field')->assertDontSee('The form.value field')
+            ->set('form.status', 'completed')->set('form.value', 0)->call('save')->assertHasNoErrors();
+        $this->editConfiguration($habit, ['goal_value' => null]);
+        $this->editor($habit, '2026-10-11')->assertSee('Maximum: 0')->assertSee('Complete avoidance requires zero occurrences.');
+        $this->travel(1)->days();
+        $this->editor($habit, '2026-10-12')->assertSee('No maximum set.')->assertDontSee('Maximum: 0')
+            ->assertSee('Without a maximum, assessment determines performance');
     }
 
     public function test_unavailable_dates_keep_existing_navigation_and_never_offer_save(): void

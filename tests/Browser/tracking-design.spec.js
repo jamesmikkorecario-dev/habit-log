@@ -80,7 +80,7 @@ test('daily tracking cards preserve all five editors, recorded values and inacti
         if (type === 'checkpoint') {
             await page.getByRole('checkbox', { name: 'Read', exact: true }).check();
         } else {
-            await action(page, () => page.getByLabel('Your outcome', { exact: true }).selectOption(type === 'count' || type === 'duration' ? 'partial' : 'completed'));
+            await action(page, () => page.getByLabel(['count', 'duration', 'avoidance'].includes(type) ? 'Your assessment' : 'Your outcome', { exact: true }).selectOption(type === 'count' || type === 'duration' ? 'partial' : 'completed'));
             if (type !== 'boolean') await page.locator('#entry-value').fill(type === 'avoidance' ? '0' : '5');
         }
         await page.locator('#entry-note').fill('PRIVATE-TRACKING-CANARY');
@@ -96,7 +96,7 @@ test('daily tracking cards preserve all five editors, recorded values and inacti
     await checkLayout(page, 'populated');
     await page.getByRole('link', { name: 'Edit entry for Daily count', exact: true }).click();
     await expect(page.locator('#entry-value')).toHaveValue('5');
-    await action(page, () => page.getByLabel('Your outcome', { exact: true }).selectOption('not_applicable'));
+    await action(page, () => page.getByLabel('Your assessment', { exact: true }).selectOption('not_applicable'));
     await action(page, () => page.getByRole('button', { name: 'Save activity', exact: true }).click());
     await page.getByRole('link', { name: 'Daily overview', exact: true }).click();
     await expect(page.locator(`[data-tracking-habit="${habits[1].id}"]`)).toContainText('Recorded outcome: Not applicable');

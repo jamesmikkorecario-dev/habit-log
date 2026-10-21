@@ -24,7 +24,7 @@ for (const type of [
         else
             await action(page, () =>
                 page
-                    .getByLabel("Your outcome", { exact: true })
+                    .getByLabel((["count", "duration", "avoidance"].includes(type) ? "Your assessment" : "Your outcome"), { exact: true })
                     .selectOption(type === "boolean" ? "completed" : "partial"),
             );
         if (["count", "duration", "avoidance"].includes(type))
@@ -51,7 +51,7 @@ for (const type of [
         await action(page, () =>
             page
                 .getByLabel(
-                    type === "checkpoint" ? "Applicability" : "Your outcome",
+                    type === "checkpoint" ? "Applicability" : (["count", "duration", "avoidance"].includes(type) ? "Your assessment" : "Your outcome"),
                     { exact: true },
                 )
                 .selectOption("not_applicable"),
@@ -64,7 +64,7 @@ for (const type of [
         await page.reload();
         await expect(
             page.getByLabel(
-                type === "checkpoint" ? "Applicability" : "Your outcome",
+                type === "checkpoint" ? "Applicability" : (["count", "duration", "avoidance"].includes(type) ? "Your assessment" : "Your outcome"),
                 { exact: true },
             ),
         ).toHaveValue("not_applicable");

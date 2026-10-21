@@ -57,7 +57,7 @@ test('entry editor design covers all five types, empty defaults, conditional pri
         await expect(page.locator('[data-terminal-path]')).toHaveAttribute('data-terminal-path', '~/tracking/edit');
         await expect(page.locator('[data-terminal-path]')).toHaveAttribute('data-terminal-state', 'complete');
         await expect(page.locator('[data-entry-state]')).toContainText('No saved activity for this date.');
-        const outcome = page.getByLabel(type === 'checkpoint' ? 'Applicability' : 'Your outcome', { exact: true });
+        const outcome = page.getByLabel(type === 'checkpoint' ? 'Applicability' : (['count', 'duration', 'avoidance'].includes(type) ? 'Your assessment' : 'Your outcome'), { exact: true });
         await expect(outcome).toHaveValue(type === 'checkpoint' ? 'missed' : '');
         if (type === 'boolean') await expect(outcome.locator('option[value="partial"]')).toHaveCount(0);
         if (type === 'checkpoint') {
@@ -101,7 +101,7 @@ test('entry editor design preserves validation, confirmed save, loading, reload 
     await expect(page.locator('#entry-note')).toHaveValue('Private unsaved draft');
     await expect(page.getByText('Activity saved.', { exact: true })).toHaveCount(0);
     await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible();
-    await action(page, () => page.getByLabel('Your outcome', { exact: true }).selectOption('partial'));
+    await action(page, () => page.getByLabel('Your assessment', { exact: true }).selectOption('partial'));
     await page.locator('#entry-value').fill('5');
     let release;
     const held = new Promise(resolve => { release = resolve; });

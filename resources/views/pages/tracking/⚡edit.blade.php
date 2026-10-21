@@ -95,6 +95,7 @@ new #[Title('Record activity')] class extends Component
     x-on:livewire:navigate.window="if (dirty && !confirm('Leave this page and discard unsaved activity?')) $event.preventDefault()"
     x-on:beforeunload.window="if (dirty) { $event.preventDefault(); $event.returnValue = ''; }">
     @php($version = $this->version)
+    @php($usesAssessment = in_array($version?->type, [HabitType::Count, HabitType::Duration, HabitType::Avoidance], true))
     @php($reason = $this->reason)
     <header>
         <x-terminal-path path="~/tracking/edit" />
@@ -131,7 +132,7 @@ new #[Title('Record activity')] class extends Component
                 </div>
                 <p class="text-sm leading-relaxed text-zinc-400" data-entry-state>{{ $entryRevision === null ? 'No saved activity for this date. Your choices are not recorded until you save.' : 'Editing saved activity. Save to apply your changes.' }}</p>
                 @if($version && in_array($version->type->value, ['count', 'duration', 'avoidance'], true))
-                    <p class="break-words text-sm text-zinc-300">{{ $version->type->value === 'avoidance' ? 'Acceptable maximum' : 'Goal' }}: {{ $version->goal_value ?? 'Not set' }}@if($version->goal_value !== null && $version->goal_unit) {{ $version->goal_unit }}@endif</p>
+                    <p class="break-words text-sm text-zinc-300">@if($version->type === HabitType::Avoidance && $version->goal_value === null)No maximum set.@else{{ $version->type === HabitType::Avoidance ? 'Maximum' : 'Goal' }}: {{ $version->goal_value ?? 'Not set' }}@if($version->goal_value !== null && $version->goal_unit) {{ $version->goal_unit }}@endif @endif</p>
                 @endif
             </header>
             <div class="space-y-5 p-5 sm:p-6">
@@ -146,12 +147,12 @@ new #[Title('Record activity')] class extends Component
                     <form wire:submit="save" class="space-y-5" data-entry-form>
                         <fieldset class="min-w-0 space-y-5" @disabled($reason !== null) wire:loading.attr="disabled" wire:target="save,loadEntry">
                             <div class="max-w-sm">
-                                <flux:select wire:model.live="form.status" :label="$version->type === HabitType::Checkpoint ? 'Applicability' : 'Your outcome'" :description="in_array($version->type->value, ['count', 'duration', 'avoidance'], true) ? 'Your assessment of the day. Measurements are saved separately.' : null">
+                                <flux:select wire:model.live="form.status" :label="$version->type === HabitType::Checkpoint ? 'Applicability' : ($usesAssessment ? 'Your assessment' : 'Your outcome')" :description="$version->type === HabitType::Avoidance ? ($version->goal_value === null ? 'Without a maximum, assessment determines performance: Completed 100%, Partial 50%, Missed 0%.' : ($version->goal_value === 0 ? 'Complete avoidance requires zero occurrences. Performance is 100% at zero, otherwise 0%. Assessment is stored separately.' : 'Performance is 100% at or below the maximum, otherwise 0%. Assessment is stored separately.')) : ($usesAssessment ? ($version->goal_value !== null ? ($version->type === HabitType::Duration ? 'Performance is calculated from recorded minutes ÷ goal (capped at 100%); assessment is stored separately.' : 'Performance is calculated from count ÷ goal; assessment is stored separately.') : 'Assessment determines performance: Completed 100%, Partial 50%, Missed 0%.') : null)">
                                     @if($version->type === HabitType::Checkpoint)
                                         <flux:select.option value="missed">Track checkpoints</flux:select.option>
                                         @if(in_array($form->status, ['partial', 'completed'], true))<flux:select.option :value="$form->status">Track checkpoints</flux:select.option>@endif
                                     @else
-                                        <flux:select.option value="">Choose an outcome</flux:select.option>
+                                        <flux:select.option value="">{{ $usesAssessment ? 'Choose an assessment' : 'Choose an outcome' }}</flux:select.option>
                                         <flux:select.option value="completed">Completed</flux:select.option>
                                         @if($version->type !== HabitType::Boolean)<flux:select.option value="partial">Partial</flux:select.option>@endif
                                         <flux:select.option value="missed">Missed</flux:select.option>
@@ -170,12 +171,15 @@ new #[Title('Record activity')] class extends Component
                             @else
                                 @if(in_array($version->type->value, ['count', 'duration', 'avoidance'], true))
                                     <div wire:key="entry-numeric-value" class="max-w-sm space-y-2">
-                                        <label for="entry-value" class="text-sm font-medium text-zinc-200">{{ $version->type === HabitType::Duration ? 'Actual minutes' : ($version->type === HabitType::Avoidance ? 'Occurrences' : 'Actual count') }}</label>
-                                        <flux:input id="entry-value" wire:model="form.value" type="number" min="0" max="999999999" step="1" inputmode="numeric" aria-required="true" aria-describedby="entry-unit entry-measurement-help" />
-                                        <p id="entry-unit" class="break-words text-sm text-zinc-400">{{ $version->goal_unit }}</p>
+                                        <label for="entry-value" class="break-words text-sm font-medium text-zinc-200">{{ $version->type === HabitType::Duration ? 'Actual minutes' : ($version->type === HabitType::Avoidance ? 'Occurrences'.($version->goal_unit !== null && $version->goal_unit !== '' ? ' ('.$version->goal_unit.')' : '') : 'Actual count'.($version->goal_unit !== null && $version->goal_unit !== '' ? ' ('.$version->goal_unit.')' : '')) }}</label>
+                                        <flux:input id="entry-value" wire:model="form.value" type="number" min="0" max="999999999" step="1" inputmode="numeric" aria-required="true" :aria-describedby="($usesAssessment ? 'entry-value-error' : 'entry-unit').' entry-measurement-help'" />
+                                        @if($usesAssessment)
+                                            <flux:error id="entry-value-error" name="form.value" />
+                                        @else
+                                            <p id="entry-unit" class="break-words text-sm text-zinc-400">{{ $version->goal_unit }}</p>
+                                        @endif
                                         <p id="entry-measurement-help" class="text-xs leading-relaxed text-zinc-400">{{ $version->type === HabitType::Duration ? 'Enter the whole number of minutes spent, from 0 to 999,999,999.' : ($version->type === HabitType::Avoidance ? 'Enter how many times the behavior occurred, from 0 to 999,999,999.' : 'Enter a whole-number measurement from 0 to 999,999,999.') }}</p>
                                     </div>
-                                    <p class="text-sm leading-relaxed text-zinc-400">{{ $version->goal_value === null ? 'Without a numeric goal, Completed / Partial / Missed scores 100% / 50% / 0%.' : ($version->type === HabitType::Avoidance ? 'At or below your maximum counts as success. A zero maximum means abstinence.' : 'Performance uses this measurement and the goal for this date; it may differ from your assessment.') }}</p>
                                 @endif
                                 @if($version->type === HabitType::Checkpoint)
                                     <fieldset class="min-w-0 space-y-3">
@@ -189,7 +193,7 @@ new #[Title('Record activity')] class extends Component
                                     <p class="text-sm leading-relaxed text-zinc-400">All checked: completed. Some: partial. None: missed.</p>
                                 @endif
                             @endif
-                            <flux:error name="form.value" /><flux:error name="form.completed" /><flux:error name="form.completed.*" />
+                            @if(!$usesAssessment || $form->status === 'not_applicable')<flux:error name="form.value" />@endif<flux:error name="form.completed" /><flux:error name="form.completed.*" />
                             <div class="space-y-3 border-t border-zinc-800 pt-5">
                                 <flux:textarea id="entry-note" label:id="entry-note-label" aria-labelledby="entry-note-label" aria-describedby="entry-note-help" wire:model="form.note" label="Private note (optional)" maxlength="2000" rows="5" class="text-base! leading-relaxed!" description="Only you can read this note." />
                                 <p id="entry-note-help" class="text-xs text-zinc-400">Up to 2,000 characters of plain text.</p>
