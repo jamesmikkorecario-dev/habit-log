@@ -149,8 +149,7 @@ new #[Title('Record activity')] class extends Component
                             <div class="max-w-sm">
                                 <flux:select wire:model.live="form.status" :label="$version->type === HabitType::Checkpoint ? 'Applicability' : ($usesAssessment ? 'Your assessment' : 'Your outcome')" :description="$version->type === HabitType::Avoidance ? ($version->goal_value === null ? 'Without a maximum, assessment determines performance: Completed 100%, Partial 50%, Missed 0%.' : ($version->goal_value === 0 ? 'Complete avoidance requires zero occurrences. Performance is 100% at zero, otherwise 0%. Assessment is stored separately.' : 'Performance is 100% at or below the maximum, otherwise 0%. Assessment is stored separately.')) : ($usesAssessment ? ($version->goal_value !== null ? ($version->type === HabitType::Duration ? 'Performance is calculated from recorded minutes ÷ goal (capped at 100%); assessment is stored separately.' : 'Performance is calculated from count ÷ goal; assessment is stored separately.') : 'Assessment determines performance: Completed 100%, Partial 50%, Missed 0%.') : null)">
                                     @if($version->type === HabitType::Checkpoint)
-                                        <flux:select.option value="missed">Track checkpoints</flux:select.option>
-                                        @if(in_array($form->status, ['partial', 'completed'], true))<flux:select.option :value="$form->status">Track checkpoints</flux:select.option>@endif
+                                        <flux:select.option :value="in_array($form->status, ['partial', 'completed'], true) ? $form->status : 'missed'">Track checkpoints</flux:select.option>
                                     @else
                                         <flux:select.option value="">{{ $usesAssessment ? 'Choose an assessment' : 'Choose an outcome' }}</flux:select.option>
                                         <flux:select.option value="completed">Completed</flux:select.option>
@@ -160,6 +159,23 @@ new #[Title('Record activity')] class extends Component
                                     <flux:select.option value="not_applicable">Not applicable</flux:select.option>
                                 </flux:select>
                             </div>
+                            @if($version->type === HabitType::Checkpoint)
+                                <div class="space-y-3 rounded-lg border border-zinc-700 bg-zinc-950/40 p-4" data-checkpoint-summary
+                                    wire:key="checkpoint-summary-{{ $version->id }}-{{ $version->revision }}"
+                                    x-data="checkpointProgress(@js($version->checkpoints->modelKeys()))">
+                                    <div role="status" aria-live="polite" aria-atomic="true" class="space-y-1">
+                                        <p class="text-xs text-zinc-400" x-text="dirty ? 'Unsaved preview' : ($wire.entryRevision === null ? 'Not saved · Current selection' : 'Saved activity')"></p>
+                                        <p class="break-words text-sm font-medium text-zinc-100" x-text="summary" data-checkpoint-progress></p>
+                                    </div>
+                                    <p id="checkpoint-progress-help" class="text-xs leading-relaxed text-zinc-400">Performance is completed checkpoints ÷ total. All checked: Completed. Some: Partial. None: Missed. Only Save records your changes.</p>
+                                    @if(!$reason)
+                                        <flux:button type="submit" variant="primary" :loading="false" class="min-h-11 w-full sm:w-auto" aria-label="Save activity above checkpoints" data-checkpoint-save wire:loading.attr="disabled" wire:target="save,loadEntry">
+                                            <span wire:loading.remove wire:target="save">Save activity</span><span wire:loading wire:target="save">Saving…</span>
+                                        </flux:button>
+                                    @endif
+                                </div>
+                                <flux:error name="form.completed" id="checkpoint-selection-error" />
+                            @endif
                             @if($form->status === 'not_applicable')
                                 <p class="text-sm leading-relaxed text-zinc-400">This date is neutral. Previously saved measurements and checkpoints are retained.</p>
                                 <div wire:key="entry-na-reason" class="space-y-2">
@@ -182,18 +198,21 @@ new #[Title('Record activity')] class extends Component
                                     </div>
                                 @endif
                                 @if($version->type === HabitType::Checkpoint)
-                                    <fieldset class="min-w-0 space-y-3">
+                                    <fieldset class="min-w-0 space-y-3" aria-describedby="checkpoint-progress-help checkpoint-selection-error" aria-disabled="{{ $reason !== null ? 'true' : 'false' }}" wire:loading.attr="aria-disabled" wire:target="save,loadEntry">
                                         <legend class="mb-3 text-sm font-medium text-zinc-200">Daily checkpoints</legend>
                                         @foreach($version->checkpoints as $checkpoint)
                                             <div class="min-w-0 rounded-lg border border-zinc-800 px-3 [&_[data-flux-field]]:items-center [&_[data-flux-label]]:block [&_[data-flux-label]]:min-h-11 [&_[data-flux-label]]:min-w-0 [&_[data-flux-label]]:break-words [&_[data-flux-label]]:py-3" data-entry-checkpoint wire:key="daily-checkpoint-{{ $checkpoint->id }}">
-                                                <flux:checkbox wire:model="form.completed" :value="(string) $checkpoint->id" :label="$checkpoint->label" />
+                                                <flux:field variant="inline">
+                                                    <flux:checkbox wire:model="form.completed" :value="(string) $checkpoint->id" :disabled="$reason !== null" :aria-disabled="$reason !== null ? 'true' : null" wire:loading.attr="disabled" wire:target="save,loadEntry" :aria-invalid="$errors->has('form.completed') || $errors->has('form.completed.*') ? 'true' : 'false'" aria-describedby="checkpoint-selection-error" />
+                                                    <flux:label>{{ $checkpoint->label }}</flux:label>
+                                                </flux:field>
                                             </div>
                                         @endforeach
                                     </fieldset>
-                                    <p class="text-sm leading-relaxed text-zinc-400">All checked: completed. Some: partial. None: missed.</p>
                                 @endif
                             @endif
-                            @if(!$usesAssessment || $form->status === 'not_applicable')<flux:error name="form.value" />@endif<flux:error name="form.completed" /><flux:error name="form.completed.*" />
+                            @if(!$usesAssessment || $form->status === 'not_applicable')<flux:error name="form.value" />@endif
+                            @if($version->type !== HabitType::Checkpoint)<flux:error name="form.completed" /><flux:error name="form.completed.*" />@endif
                             <div class="space-y-3 border-t border-zinc-800 pt-5">
                                 <flux:textarea id="entry-note" label:id="entry-note-label" aria-labelledby="entry-note-label" aria-describedby="entry-note-help" wire:model="form.note" label="Private note (optional)" maxlength="2000" rows="5" class="text-base! leading-relaxed!" description="Only you can read this note." />
                                 <p id="entry-note-help" class="text-xs text-zinc-400">Up to 2,000 characters of plain text.</p>
