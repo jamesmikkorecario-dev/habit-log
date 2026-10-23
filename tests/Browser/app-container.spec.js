@@ -59,6 +59,9 @@ test('authenticated pages share outer alignment and keep inner forms bounded', a
     await page.getByRole('button', { name: 'Toggle navigation', exact: true }).click();
     const menu = page.getByRole('link', { name: 'Dashboard', exact: true });
     await expect(menu).toBeVisible();
+    // Visibility precedes Alpine's enter-transition cleanup. Its initial scale
+    // moves the link even with reduced motion; measure only the settled layout.
+    await expect(page.locator('nav [x-transition]')).toHaveCSS('transform', 'none');
     const navBounds = await menu.boundingBox();
     expect(navBounds.x).toBe(24);
     await menu.click();
