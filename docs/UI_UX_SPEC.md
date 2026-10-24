@@ -246,6 +246,8 @@ Container verification (2026-10-10): `composer ci:check` passed Pint and 350 PHP
 
 ## Private journal writing workspace
 
+Journal deletion dialogs restore focus only after the close-triggered cancellation request completes, when the Delete journal button is enabled again. Escape, Cancel, and Close modal return focus to that button without changing saved text or mood; successful deletion returns focus to the journal heading. Browser regressions hold the cancellation request open to exercise this ordering without relying on network timing.
+
 The journal uses the shared authenticated outer container for its header and a responsive workspace beneath it. At desktop widths, a compact date card sits beside a writing card capped at `max-w-3xl` (48rem); tablet/mobile stack the cards. The heading follows the Dashboard typography with “Your private space” and an owner-only privacy indicator. No encryption claim, browser draft storage, or external service is introduced.
 
 The date card presents a human-readable selected date, its exact stored date/timezone, grouped Previous/Today/Next links where allowed, and the existing date input with explicit Go to date. Initial-date validation, future-local retained-entry read-only access, date bounds, and timezone semantics are unchanged. Existing dirty-form guards for navigation, browser history/unload, reload, and deletion stay intact.

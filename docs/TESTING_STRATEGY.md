@@ -2,6 +2,10 @@
 
 Use the single framework supplied by the Laravel 13 Livewire starter (PHPUnit). Prefer feature tests for HTTP/Livewire behavior and unit tests for isolated scoring or domain rules when those exist.
 
+Livewire 4.4.8's [test request broker](https://github.com/livewire/livewire/blob/v4.4.8/src/Features/SupportTesting/RequestBroker.php) lets Laravel render `ModelNotFoundException` as an HTTP response, including during component mount and action calls. Assert `assertNotFound()` for owner-scoped missing/foreign/trashed records, and `assertForbidden()` for policy or session-identity rejection. Do not expect these component calls to throw `ModelNotFoundException`, disable exception handling to restore old behavior, or treat an HTTP rejection as a successful action. Direct Action tests should still assert the exception actually thrown at that boundary.
+
+Rejection tests must also verify persisted data is unchanged: compare database-loaded attributes before and after, check row counts for unintended inserts, and include checkpoint child records where applicable. Category, lifecycle, and tracking regressions cover foreign identifiers, private category selection, stale trash saves/confirmations, and protected entries. Tracking tests additionally replay owner snapshots under another account and reject both reads and writes across all habit visibility preferences; trashed-entry tests preserve existing notes, revisions, and checkpoint outcomes.
+
 Phase 0 covers successful and invalid registration, successful and invalid login, logout, guest denial/redirect for the application page, and authenticated access. Database tests use only `habit_log_test`, reset safely, and remain repeatable.
 
 Phase 1 covers profile loading/saving, username uniqueness and boundaries, nullable text, literal/padded zero text, privacy defaults/toggling, theme validation, escaped identity output, and dashboard navigation. Ownership tests verify that another user's record remains unchanged and that a real Livewire update request is rejected after logout. Invalid submissions must leave all stored profile values unchanged.
