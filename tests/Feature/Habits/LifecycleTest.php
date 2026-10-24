@@ -6,7 +6,6 @@ use App\Models\Category;
 use App\Models\Habit;
 use App\Models\HabitCheckpoint;
 use App\Models\User;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
@@ -71,12 +70,9 @@ class LifecycleTest extends TestCase
             $habit->delete();
         }
         $before = $habit->refresh()->getAttributes();
-        try {
-            Livewire::actingAs($user)->test('pages::habits.index')->call($action, $habit->id);
-            $this->fail('Foreign habit must not be found.');
-        } catch (ModelNotFoundException) {
-            $this->assertSame($before, $habit->refresh()->getAttributes());
-        }
+        Livewire::actingAs($user)->test('pages::habits.index')->call($action, $habit->id)->assertNotFound();
+        $this->assertSame($before, $habit->refresh()->getAttributes());
+        $this->assertDatabaseCount('habit_suspensions', 0);
         $this->assertFalse(Gate::forUser($user)->allows('forceDelete', $habit));
         $this->assertFalse(Gate::forUser($habit->user)->allows('forceDelete', $habit));
     }
@@ -90,15 +86,12 @@ class LifecycleTest extends TestCase
     {
         $user = User::factory()->create();
         $habit = Habit::factory()->for($user)->create();
-        $component = Livewire::actingAs($user)->test('pages::habits.edit', ['habit' => $habit->id]);
+        $component = Livewire::actingAs($user)->test('pages::habits.edit', ['habit' => $habit->id])->set('form.name', 'Stale edit');
         $habit->delete();
         $before = $habit->refresh()->getAttributes();
-        try {
-            $component->set('form.name', 'Stale edit')->call('save');
-            $this->fail('Trashed record must not be editable.');
-        } catch (ModelNotFoundException) {
-            $this->assertSame($before, $habit->refresh()->getAttributes());
-        }
+        $component->call('save')->assertNotFound();
+        $this->assertSame($before, $habit->refresh()->getAttributes());
+        $this->assertDatabaseCount('habit_suspensions', 0);
     }
 
     public function test_stale_trash_confirmation_cannot_rewrite_deletion_time(): void
@@ -107,14 +100,11 @@ class LifecycleTest extends TestCase
         $habit = Habit::factory()->for($user)->create();
         $component = Livewire::actingAs($user)->test('pages::habits.index')->call('confirmTrash', $habit->id);
         $habit->delete();
-        $deletedAt = $habit->deleted_at;
+        $before = $habit->refresh()->getAttributes();
         $this->travel(1)->days();
-        try {
-            $component->call('trash');
-            $this->fail('Repeated trash must not write again.');
-        } catch (ModelNotFoundException) {
-            $this->assertEquals($deletedAt, $habit->fresh()->deleted_at);
-        }
+        $component->call('trash')->assertNotFound();
+        $this->assertSame($before, $habit->refresh()->getAttributes());
+        $this->assertDatabaseCount('habit_suspensions', 0);
     }
 
     public function test_filters_and_pagination_never_expand_ownership(): void

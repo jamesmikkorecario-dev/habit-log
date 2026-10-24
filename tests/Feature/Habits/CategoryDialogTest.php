@@ -5,7 +5,6 @@ namespace Tests\Feature\Habits;
 use App\Models\Category;
 use App\Models\Habit;
 use App\Models\User;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -36,12 +35,15 @@ class CategoryDialogTest extends TestCase
         $user = User::factory()->create();
         $own = Category::factory()->for($user)->create(['name' => 'Reading routine']);
         $foreign = Category::factory()->create(['name' => 'Reading secret']);
+        $before = $foreign->refresh()->getAttributes();
         Livewire::actingAs($user)->test('pages::categories.index', ['inline' => true])
             ->set('name', 'Reading')->call('review')->assertSee($own->name)->assertDontSee($foreign->name)
             ->call('useCategory', $own->id)->assertNoRedirect()->assertDispatched('habit-category-selected', categoryId: $own->id);
-        $this->expectException(ModelNotFoundException::class);
         Livewire::actingAs($user)->test('pages::categories.index', ['inline' => true])
-            ->call('useCategory', $foreign->id);
+            ->call('useCategory', $foreign->id)->assertNotFound()->assertNotDispatched('habit-category-selected');
+        $this->assertSame($before, $foreign->refresh()->getAttributes());
+        $this->assertDatabaseCount('categories', 2);
+        $this->assertDatabaseCount('habits', 0);
     }
 
     public function test_category_selection_preserves_create_and_edit_drafts_and_does_not_save_the_habit(): void
@@ -69,9 +71,11 @@ class CategoryDialogTest extends TestCase
     {
         $user = User::factory()->create();
         $foreign = Category::factory()->create();
-        $this->assertSame(0, $user->habits()->count());
-        $this->expectException(ModelNotFoundException::class);
+        $before = $foreign->refresh()->getAttributes();
         Livewire::actingAs($user)->test('pages::habits.edit')
-            ->dispatch('habit-category-selected', categoryId: $foreign->id);
+            ->dispatch('habit-category-selected', categoryId: $foreign->id)->assertNotFound()->assertNotDispatched('habit-category-applied');
+        $this->assertSame($before, $foreign->refresh()->getAttributes());
+        $this->assertDatabaseCount('categories', 1);
+        $this->assertDatabaseCount('habits', 0);
     }
 }

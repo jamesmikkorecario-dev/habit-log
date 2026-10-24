@@ -6,7 +6,6 @@ use App\Actions\Habits\CancelTrackingChange;
 use App\Actions\Habits\TransitionHabit;
 use App\Models\User;
 use App\Services\TrackingDate;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
@@ -109,12 +108,36 @@ class HistoryTest extends TrackingTestCase
         $period = $habit->suspensions()->sole();
         $this->assertTrue($period->start_date->equalTo($period->end_date));
         $transition->handle($habit->user, $habit->id, 'delete');
-        try {
-            $page->call('save');
-            $this->fail('Trash must deny writes.');
-        } catch (ModelNotFoundException) {
-            $this->assertDatabaseCount('habit_entries', 0);
-        }
+        $before = $habit->refresh()->getAttributes();
+        $page->call('save')->assertNotFound();
+        $this->assertSame($before, $habit->refresh()->getAttributes());
+        $this->assertDatabaseCount('habit_entries', 0);
+        $this->assertDatabaseCount('habit_checkpoint_entries', 0);
+    }
+
+    public function test_trash_rejects_stale_reads_and_updates_without_changing_saved_entry_or_checkpoints(): void
+    {
+        $habit = $this->habit('checkpoint');
+        $ids = $habit->versions()->sole()->checkpoints->modelKeys();
+        $this->editor($habit)->set('form.completed', [$ids[0]])->set('form.note', 'Preserved checkpoint note')->call('save')->assertHasNoErrors();
+        $reader = $this->editor($habit);
+        $writer = $this->editor($habit)->set('form.completed', $ids)->set('form.note', 'Stale replacement');
+        $entry = $habit->entries()->sole();
+        $before = $entry->getAttributes();
+        $children = $entry->checkpoints()->orderBy('id')->get()->map->getAttributes()->all();
+        app(TransitionHabit::class)->handle($habit->user, $habit->id, 'delete');
+        $habitBefore = $habit->refresh()->getAttributes();
+
+        $this->actingAs($habit->user)->get(route('entries.index', $habit))->assertNotFound()->assertDontSee('Preserved checkpoint note');
+        $this->get(route('entries.edit', ['habit' => $habit, 'date' => '2026-09-27']))->assertNotFound()->assertDontSee('Preserved checkpoint note');
+        $this->editor($habit)->assertNotFound()->assertDontSee('Preserved checkpoint note');
+        $reader->call('loadEntry')->assertNotFound();
+        $writer->call('save')->assertNotFound();
+        $this->assertSame($habitBefore, $habit->refresh()->getAttributes());
+        $this->assertSame($before, $entry->refresh()->getAttributes());
+        $this->assertSame($children, $entry->checkpoints()->orderBy('id')->get()->map->getAttributes()->all());
+        $this->assertDatabaseCount('habit_entries', 1);
+        $this->assertDatabaseCount('habit_checkpoint_entries', 2);
     }
 
     public function test_timezone_changes_do_not_move_dates_and_stale_timezone_form_rejects(): void

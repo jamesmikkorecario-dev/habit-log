@@ -7,7 +7,6 @@ use App\Models\CategoryAlias;
 use App\Models\User;
 use App\Services\CategoryRecommender;
 use Database\Seeders\CategorySeeder;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -149,10 +148,13 @@ class CategoryTest extends TestCase
         $user = User::factory()->create();
         $system = Category::factory()->system()->create();
         $other = Category::factory()->create();
+        $before = $other->refresh()->getAttributes();
         Livewire::actingAs($user)->test('pages::categories.index')->call('useCategory', $system->id)->assertRedirect(route('habits.create', ['category' => $system->id]));
         $this->actingAs($user)->get(route('habits.create', ['category' => $other->id]))->assertNotFound();
-        $this->expectException(ModelNotFoundException::class);
-        Livewire::actingAs($user)->test('pages::categories.index')->call('useCategory', $other->id);
+        Livewire::actingAs($user)->test('pages::categories.index')->call('useCategory', $other->id)->assertNotFound()->assertNoRedirect();
+        $this->assertSame($before, $other->refresh()->getAttributes());
+        $this->assertDatabaseCount('categories', 2);
+        $this->assertDatabaseCount('habits', 0);
     }
 
     public function test_recommender_excludes_other_users_names_and_aliases(): void

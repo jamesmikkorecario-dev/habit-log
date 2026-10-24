@@ -4,7 +4,6 @@ namespace Tests\Feature\Tracking;
 
 use App\Models\HabitCheckpointEntry;
 use App\Models\User;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -143,21 +142,49 @@ class EntryTest extends TrackingTestCase
         foreach (['private', 'followers', 'public'] as $visibility) {
             $habit = $this->habit('count', ['visibility' => $visibility]);
             $this->editor($habit)->set('form.status', 'completed')->set('form.value', 1)->set('form.note', 'Secret note')->call('save')->assertHasNoErrors();
+            $entry = $habit->entries()->sole();
+            $before = $entry->getAttributes();
             $other = User::factory()->create();
             $this->actingAs($other)->get(route('entries.edit', ['habit' => $habit, 'date' => '2026-09-27']))->assertNotFound();
             $this->get(route('entries.index', $habit))->assertNotFound();
             $this->get(route('tracking.index'))->assertDontSee('Daily practice')->assertDontSee('Secret note');
-            try {
-                Livewire::actingAs($other)->test('pages::tracking.edit', ['habit' => $habit->id, 'date' => '2026-09-27']);
-                $this->fail('Foreign Livewire mount must fail.');
-            } catch (ModelNotFoundException) {
-                $this->assertSame('Secret note', $habit->entries()->sole()->note);
-            }
+            Livewire::actingAs($other)->test('pages::tracking.edit', ['habit' => $habit->id, 'date' => '2026-09-27'])
+                ->assertNotFound()->assertDontSee('Secret note');
+            $this->assertSame($before, $entry->refresh()->getAttributes());
+            $this->assertSame(1, $habit->entries()->count());
         }
         auth()->logout();
         $this->get(route('tracking.index'))->assertRedirect(route('login'));
         $this->get(route('entries.index', $habit))->assertRedirect(route('login'));
         $this->get(route('entries.edit', ['habit' => $habit, 'date' => '2026-09-27']))->assertRedirect(route('login'));
+    }
+
+    public function test_foreign_session_cannot_read_or_overwrite_saved_checkpoint_entry_from_owner_snapshot(): void
+    {
+        foreach (['private', 'followers', 'public'] as $visibility) {
+            $habit = $this->habit('checkpoint', ['visibility' => $visibility]);
+            $ids = $habit->versions()->sole()->checkpoints->modelKeys();
+            $this->editor($habit)->set('form.completed', [$ids[0]])->set('form.note', 'Protected checkpoint note')->call('save')->assertHasNoErrors();
+            $entry = $habit->entries()->sole();
+            $before = $entry->getAttributes();
+            $children = $entry->checkpoints()->orderBy('id')->get()->map->getAttributes()->all();
+            $response = $this->actingAs($habit->user)->get(route('entries.edit', ['habit' => $habit, 'date' => '2026-09-27']))->assertOk();
+            preg_match('/wire:snapshot="([^"]+)"/', $response->getContent(), $matches);
+            $this->assertNotEmpty($matches[1] ?? null);
+            $snapshot = html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5);
+
+            $this->actingAs(User::factory()->create());
+            foreach (['loadEntry', 'save'] as $method) {
+                $this->withHeader('X-Livewire', 'true')->postJson(Livewire::getUpdateUri(), ['components' => [[
+                    'snapshot' => $snapshot,
+                    'updates' => ['form.completed' => $ids, 'form.note' => 'Unauthorized replacement'],
+                    'calls' => [['path' => '', 'method' => $method, 'params' => []]],
+                ]]])->assertForbidden()->assertDontSee('Protected checkpoint note');
+                $this->assertSame($before, $entry->refresh()->getAttributes());
+                $this->assertSame($children, $entry->checkpoints()->orderBy('id')->get()->map->getAttributes()->all());
+                $this->assertSame(1, $habit->entries()->count());
+            }
+        }
     }
 
     public function test_html_is_escaped_and_numeric_limit_and_private_text_round_trip(): void
