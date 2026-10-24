@@ -222,9 +222,10 @@ new #[Title('Private journal')] class extends Component
             </div>
         </section>
     </div>
-    <flux:modal name="delete-journal" wire:model="showDeleteModal" wire:close="cancelDeletion"
+    {{-- Restore focus after cancellation finishes; loading disables the trigger during that request. --}}
+    <flux:modal name="delete-journal" wire:model="showDeleteModal"
         x-init="$el.querySelector('dialog').setAttribute('aria-labelledby', 'journal-delete-title'); $el.querySelector('dialog').setAttribute('aria-describedby', 'journal-delete-description')"
-        x-on:close="$nextTick(() => (document.getElementById('journal-delete-trigger') ?? document.getElementById('journal-heading'))?.focus())"
+        x-on:close="await $wire.cancelDeletion(); $nextTick(() => (document.getElementById('journal-delete-trigger') ?? document.getElementById('journal-heading'))?.focus())"
         class="w-[calc(100%-2rem)] min-w-0! space-y-5">
         <h2 id="journal-delete-title" class="pr-6 text-lg font-semibold">Delete journal for {{ $date }}?</h2>
         <p id="journal-delete-description" class="text-sm text-zinc-300">This permanently removes this day's text and mood. You cannot undo this deletion.</p>
