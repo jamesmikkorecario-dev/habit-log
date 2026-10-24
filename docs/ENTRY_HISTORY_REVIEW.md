@@ -1,5 +1,30 @@
 # Entry History UI/UX review
 
+## Refinements implemented — 2026-10-24
+
+The findings from the original inspection below are now addressed in `resources/views/pages/tracking/⚡history.blade.php`. The history page uses the approved Terminal Green header and neutral cards, keeps the full historical unit with wrapping, and separates personal assessment from historical performance and goal/maximum. Checkpoint rows show completed/total immutable snapshot items and normalized performance; N/A remains neutral and hides retained measurements. Missing/invalid checkpoint membership is unavailable, never fabricated as zero.
+
+Out-of-range pages retain the saved-entry total and offer Back to first page instead of claiming there is no activity. Valid pagination stays at 20 entries, descending by date, with 44px Previous/Next controls. Every entry link includes its date in the accessible name and uses a semantic `time`. Back to habit and Daily tracking are near the header; Open today's entry is offered only when the existing eligibility service permits it. Empty history supplies recording guidance. Archived histories explain that earlier eligible dates remain editable; future-local/inactive rows explain read-only access. Arbitrary date jumping remains in the existing dated editor; history does not create entries or introduce a new date contract.
+
+The component reuses `HabitScore` and `TrackingDate`; no formulas, Actions, Policies, migrations, dependencies, or raw activity records changed. Reads authorize the current owner's non-trashed habit, additionally constrain entry ownership and related versions, and select no notes, reasons, or checkpoint labels. A single nonlocking read transaction keeps related rows consistent. Relations are eager-loaded per 20-row page; the 45-entry regression enforces a ceiling of 12 queries for rendering, including authentication/component reads, without running a lifetime analytics report.
+
+Verification uses only guarded `habit_log_test` and the shared test lock:
+
+- `php artisan test tests/Feature/Tracking tests/Feature/Habits tests/Feature/Analytics tests/Unit/Analytics tests/Feature/Auth/SessionBoundaryTest.php --compact`: **242 tests / 2,600 assertions passed**. Includes 14 new presentation/data regressions plus a two-connection snapshot test proving a concurrent committed edit cannot mix old parent and new checkpoint outcomes.
+- `vendor/bin/pint --test`, `npm run build`, `node --check tests/Browser/entry-history.spec.js`, and `git diff --check`: passed.
+- `composer audit --locked` and `npm audit`: zero advisories.
+- `HABIT_LOG_E2E=1 E2E_NODE='/mnt/c/Program Files/nodejs/node.exe' npm run test:e2e -- tests/Browser/entry-history.spec.js tests/Browser/core.spec.js tests/Browser/lifecycle.spec.js tests/Browser/social.spec.js`: **10 browser scenarios passed**, without retries or skips (1.1 minutes). The history scenario verifies all five types, historical goals/units, zero values, N/A, checkpoints, 45-entry pages (20/20/5), keyboard date links and pagination, page-99 recovery, archived/restored/trashed states, future-local read-only history, unchanged dates after timezone travel, foreign-user 404, and guest login redirection.
+
+The maintained browser fixture `tests/Fixtures/entry-history.php` runs only inside the guarded browser setup, creates synthetic accounts, and uses application Actions for historical versions, entries and lifecycle changes. Generated fixture IDs, observations and screenshots stay ignored under `storage/app/entry-history-refinements/`. No personal/development database is reset.
+
+There are **34 screenshots**, paired at **1440px and 390px**, using the same 17 prefixes listed in the original inventory below. All 34 captured layouts have zero horizontal overflow. The long-unit history also fits at 320px. Visible history links/buttons measure at least 44px high. Three axe scans (populated Boolean history, long-unit page 3, and empty history at 390px) report zero WCAG 2 A/AA and 2.1 AA violations; no page JavaScript errors occurred. Desktop Count, mobile Checkpoints and long-unit history, and page-99 recovery captures were visually inspected.
+
+The first focused PHP attempt exposed two fixture/assertion issues (missing required `completed` input and literal apostrophe escaping), corrected before the passing run. The first browser attempt encountered a layout-measurement race during Livewire navigation; measurements now run atomically and the test waits for the editor transition. No product assertion or authorization was weakened.
+
+Limits: installed Chrome through the WSL runner; no physical devices, manual screen-reader review, other browser engines, hosted CI, or high-volume load certification. No commit, push, merge or deployment was performed.
+
+## Original inspection — 2026-10-23
+
 Inspection on `dev`, 2026-10-23. Application code was not modified. The existing Checkpoints refinements, navigation-test fix and Checkpoints review were preserved byte-for-byte. Review harnesses, synthetic fixtures, observations and screenshots are ignored under `storage/app/entry-history-review/`. All database-resetting checks use guarded `habit_log_test`, with the repository's shared test lock.
 
 ## Current structure and behavior
