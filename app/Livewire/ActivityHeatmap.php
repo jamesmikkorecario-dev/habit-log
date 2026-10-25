@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Livewire\Concerns\RedirectsRevokedSharedAccess;
 use App\Models\Habit;
 use App\Models\User;
 use App\Services\Analytics\ActivityAnalytics;
@@ -16,6 +17,27 @@ use Livewire\Component;
 
 class ActivityHeatmap extends Component
 {
+    use RedirectsRevokedSharedAccess;
+
+    private bool $sharedInteraction = false;
+
+    public function hydrate(): void
+    {
+        $this->sharedInteraction = $this->subjectId !== null;
+        if ($this->sharedInteraction) {
+            $this->owner();
+        }
+    }
+
+    public function rendered(): void
+    {
+        if ($this->sharedInteraction && ! $this->sharedAccessRedirected) {
+            // Keep the surrounding identity/list in sync with the report's
+            // fresh authorization, without remounting this date selection.
+            $this->dispatch('shared-activity-updated.'.$this->subjectId);
+        }
+    }
+
     #[Locked]
     public ?int $habitId = null;
 

@@ -7,15 +7,30 @@ use App\Services\SocialAccess;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 new #[Title('Profile')] class extends Component
 {
-    use InteractsWithFollows, WithPagination;
+    use InteractsWithFollows { refreshRelationships as protected refreshFollowState; }
+    use WithPagination;
 
     #[Locked] public int $subjectId;
+    #[Locked] public int $activityRevision = 0;
+
+    public function refreshRelationships(): void
+    {
+        $this->refreshFollowState();
+        $this->activityRevision++;
+    }
+
+    #[On('shared-activity-updated.{subjectId}')]
+    public function refreshProfileMetadata(): void
+    {
+        $this->refreshFollowState();
+    }
 
     public function mount(User $user): void
     {
@@ -52,9 +67,12 @@ new #[Title('Profile')] class extends Component
     }
 }; ?>
 
-<div class="space-y-6" x-data="{ followOrigin: null }" x-on:click="followOrigin = $event.target.closest('[data-follow-trigger]') ?? followOrigin"
+<div class="min-w-0 space-y-6" data-shared-profile x-data="{ followOrigin: null }" x-on:click="followOrigin = $event.target.closest('[data-follow-trigger]') ?? followOrigin"
     x-on:relationship-changed.window="$nextTick(() => document.getElementById('people-heading')?.focus())">
-    <a href="{{ route('people.index') }}" wire:navigate class="text-emerald-300 underline">People</a>
+    <header class="flex flex-wrap items-center justify-between gap-3">
+        <x-terminal-path path="~/people/profile" />
+        <flux:button href="{{ route('people.index') }}" wire:navigate class="min-h-11" icon="arrow-left">People</flux:button>
+    </header>
     <section aria-label="Profile and connection" class="max-w-2xl space-y-4 rounded-xl border border-zinc-800 bg-zinc-900/30 p-5 sm:p-6">
         <header class="flex min-w-0 items-start gap-3">
             <span aria-hidden="true" class="flex size-11 shrink-0 items-center justify-center rounded-full border border-emerald-900/60 bg-emerald-950/20 font-mono text-lg text-emerald-300">{{ \Illuminate\Support\Str::upper(\Illuminate\Support\Str::substr($this->profile['name'], 0, 1)) }}</span>
@@ -67,7 +85,7 @@ new #[Title('Profile')] class extends Component
         @if($this->profile['own'])
             <p class="text-sm text-zinc-400">This is your profile. You see your private habits; other people see only habits they may access.</p>
         @elseif(!$this->profile['canFollow'])
-            <a class="text-emerald-300 underline" href="{{ route('settings.profile') }}" wire:navigate>Choose a username to follow people</a>
+            <a class="inline-flex min-h-11 items-center text-emerald-300 underline" href="{{ route('settings.profile') }}" wire:navigate>Choose a username to follow people</a>
         @elseif($this->profile['relationshipStatus'] === 'pending')
             <p class="text-sm text-zinc-300">Follow request pending.</p>
             <flux:button wire:click="changeFollow({{ $this->profile['relationshipId'] }}, 'cancel')" wire:loading.attr="disabled" variant="outline" class="min-h-11">Cancel request</flux:button>
@@ -80,23 +98,43 @@ new #[Title('Profile')] class extends Component
         <p role="status" class="text-emerald-300">{{ $feedback }}</p>
         <flux:error name="relationship" />
     </section>
-    <flux:button wire:click="refreshRelationships" wire:loading.attr="disabled">Refresh profile</flux:button>
+    <div class="flex flex-wrap items-center gap-3">
+        <flux:button wire:click="refreshRelationships" wire:loading.attr="disabled" class="min-h-11">Refresh profile</flux:button>
+        <span wire:loading wire:target="refreshRelationships" role="status" class="text-sm text-zinc-400">Refreshing profile…</span>
+        @if($this->profile['allowed'])<a href="#shared-habits" class="inline-flex min-h-11 items-center text-sm text-emerald-300 underline">View habits</a>@endif
+    </div>
     @if(!$this->profile['allowed'])
         <p>This account is private. An accepted follow request is required to see shared activity.</p>
     @else
         <p class="whitespace-pre-wrap break-words">{{ $this->profile['bio'] }}</p>
         <p class="text-sm text-zinc-400">{{ $this->profile['followers'] }} followers · {{ $this->profile['following'] }} following · {{ $this->profile['habits']->total() }} visible habits · Terminal Green</p>
-        <livewire:activity-heatmap :subject-id="$subjectId" :key="'profile-activity-'.$subjectId" />
-        <h2 class="text-xl font-semibold">Habits you can view</h2>
+        <livewire:activity-heatmap :subject-id="$subjectId" :key="'profile-activity-'.$subjectId.'-'.$activityRevision" />
+        <h2 id="shared-habits" tabindex="-1" class="scroll-mt-24 text-xl font-semibold">Habits you can view</h2>
         <ul class="divide-y divide-zinc-800">
             @forelse($this->profile['habits'] as $habit)
                 <li class="py-4" wire:key="shared-habit-{{ $habit->id }}">
-                    <a href="{{ route('people.habit', ['user' => $this->profile['username'], 'habit' => $habit->id]) }}" wire:navigate class="break-words text-emerald-300 underline">{{ $habit->name }}</a>
+                    <a href="{{ route('people.habit', ['user' => $this->profile['username'], 'habit' => $habit->id]) }}" wire:navigate class="flex min-h-11 items-center break-words text-emerald-300 underline"><span class="min-w-0">{{ $habit->name }}</span></a>
                     <span class="text-sm text-zinc-400"> · {{ $habit->visibility->label() }}{{ $habit->archived_at ? ' · Archived' : '' }}{{ $habit->versions->first()?->end_date && $habit->versions->first()->end_date->toDateString() < $this->profile['today'] ? ' · Ended' : '' }}</span>
                 </li>
-            @empty<li class="py-4 text-zinc-400">No habits to display.</li>@endforelse
+            @empty
+                <li class="space-y-3 py-4 text-zinc-400">
+                    @if($this->profile['habits']->total() > 0 || $this->profile['habits']->currentPage() > 1)
+                        <p>No habits on this page.</p>
+                        <p>{{ $this->profile['habits']->total() }} visible habits. Return to the first page to view the current list.</p>
+                        <flux:button wire:click="setPage(1)" class="min-h-11">Back to first page</flux:button>
+                    @else<p>No habits to display.</p>@endif
+                </li>
+            @endforelse
         </ul>
-        {{ $this->profile['habits']->links() }}
+        @if($this->profile['habits']->isNotEmpty() && $this->profile['habits']->hasPages())
+            <nav aria-label="Shared habit pages" class="flex flex-wrap items-center justify-between gap-3">
+                <p class="text-sm text-zinc-400" role="status">Page {{ $this->profile['habits']->currentPage() }} of {{ $this->profile['habits']->lastPage() }}</p>
+                <div class="flex gap-2">
+                    <flux:button wire:click="previousPage" :disabled="$this->profile['habits']->onFirstPage()" class="min-h-11" aria-label="Previous habit page">Previous</flux:button>
+                    <flux:button wire:click="nextPage" :disabled="!$this->profile['habits']->hasMorePages()" class="min-h-11" aria-label="Next habit page">Next</flux:button>
+                </div>
+            </nav>
+        @endif
     @endif
     <x-follow-confirmation />
 </div>

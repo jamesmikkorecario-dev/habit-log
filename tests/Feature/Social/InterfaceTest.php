@@ -60,7 +60,9 @@ class InterfaceTest extends TrackingTestCase
         $habit = $this->habit(overrides: ['visibility' => 'followers'], user: $owner);
         $page = Livewire::actingAs($viewer)->test(ActivityHeatmap::class, ['subjectId' => $owner->id, 'habitId' => $habit->id])->assertOk();
         $follow->delete();
-        $page->call('changeYear', 0)->assertNotFound();
+        $page->call('changeYear', 0)->assertRedirect(route('people.show', ['user' => $owner->username]));
+        $this->assertTrue($page->effects['redirectUsingNavigate']);
+        $this->assertArrayNotHasKey('html', $page->effects);
         $owner->update(['is_private' => false]);
         $page = Livewire::actingAs($viewer)->test(ActivityHeatmap::class, ['subjectId' => $owner->id]);
         $this->expectException(CannotUpdateLockedPropertyException::class);
