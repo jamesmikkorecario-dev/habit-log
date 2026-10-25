@@ -147,6 +147,7 @@ return [
         Features::registration(),
         /* @end-chisel-registration */
         Features::resetPasswords(),
+        Features::updatePasswords(),
     ],
 
 ];

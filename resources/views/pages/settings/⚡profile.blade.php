@@ -83,6 +83,8 @@ new #[Title('Profile Settings')] class extends Component
         <p class="mt-3 text-sm leading-relaxed text-zinc-400">Manage your identity, privacy, and preferences.</p>
     </header>
 
+    <x-settings-navigation />
+
     <form wire:submit="save" aria-label="Profile settings" class="min-w-0 space-y-6" data-profile-settings
         x-data="{ saved: false }" x-on:profile-updated.window="saved = true"
         x-on:input="saved = false" x-on:change="saved = false" x-on:submit="saved = false"

@@ -11,7 +11,9 @@ class WebSecurity
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->isMethod('POST') && $request->routeIs('password.confirm.store') && $request->user()) {
+        if ($request->isMethod('PUT') && $request->routeIs('user-password.update') && $request->user()) {
+            $response = app(ThrottleRequests::class)->handle($request, $next, 'password-change');
+        } elseif ($request->isMethod('POST') && $request->routeIs('password.confirm.store') && $request->user()) {
             $response = app(ThrottleRequests::class)->handle($request, function (Request $request) use ($next) {
                 $request->validate(['password' => ['required', 'string']]);
 
