@@ -5,7 +5,7 @@
             <div><p class="font-mono text-xs uppercase tracking-widest text-emerald-300">The bigger picture</p><h2 class="mt-2 text-xl font-semibold">{{ $habitId ? 'Habit progress' : 'Progress overview' }}</h2></div>
             <p class="text-xs text-zinc-400">As of {{ $report['today'] }} · {{ $report['timezone'] }}</p>
         </header>
-        <x-activity-summary :report="$report" :empty-messages="$emptyMessages" :new-account="$newAccount" />
+        <x-activity-summary :report="$report" :empty-messages="$emptyMessages" :new-account="$newAccount" :shared="$subjectId !== null" />
         <details wire:ignore.self class="rounded-lg border border-zinc-800 px-4 py-1 text-sm text-zinc-400">
             <summary class="cursor-pointer rounded py-3 font-medium text-zinc-300 focus-visible:outline-2 focus-visible:outline-emerald-300">How these numbers work</summary>
             <div class="space-y-3 pb-4 leading-relaxed">
@@ -32,7 +32,7 @@
                 <flux:button wire:click="changeYear(-1)" class="min-h-11" :disabled="$report['year'] <= 1000">Previous year</flux:button>
                 <flux:button wire:click="changeYear(0)" class="min-h-11">Current year</flux:button>
                 <flux:button wire:click="changeYear(1)" class="min-h-11" :disabled="$report['year'] >= (int) substr($report['today'], 0, 4)">Next year</flux:button>
-                <form wire:submit="goToYear" class="flex flex-wrap items-end gap-2"><div class="w-28"><flux:input wire:model="yearInput" type="number" label="Year" min="1000" :max="substr($report['today'], 0, 4)" /></div><flux:button type="submit" class="min-h-11">Go to year</flux:button></form>
+                <form wire:submit="goToYear" class="flex flex-wrap items-end gap-2"><div class="w-28"><flux:input wire:model="yearInput" type="number" label="Year" class:input="min-h-11" min="1000" :max="substr($report['today'], 0, 4)" /></div><flux:button type="submit" class="min-h-11">Go to year</flux:button></form>
             </div>
         </header>
         <flux:error name="yearInput" />
@@ -64,17 +64,17 @@
             <p class="text-sm text-zinc-400">{{ $selected['count'] }} included · {{ $selected['na'] }} N/A · {{ $selected['pending'] }} pending · {{ $selected['unlogged'] }} unlogged · {{ $selected['unavailable'] }} unavailable</p>
             @if(isset($selected['assessment']))
                 <p class="mt-2 text-sm">Recorded assessment: {{ $selected['assessment'] }}.</p>
-                @if($selected['state'] !== 'na' && $selected['actual'] !== null)<p class="text-sm">Actual: {{ $selected['actual'] }} {{ $selected['unit'] }} · {{ $selected['type'] }} · {{ $selected['goal'] === null ? 'No numeric goal' : 'Historical goal/limit: '.$selected['goal'] }}</p>@endif
-                <p class="text-xs text-zinc-400">With a goal, performance uses your measurement and historical setup; it may differ from your assessment. Without a numeric goal, Completed / Partial / Missed scores 100% / 50% / 0%.</p>
+                @if($selected['state'] !== 'na' && $selected['actual'] !== null)<p class="break-words text-sm">Actual: {{ $selected['actual'] }} {{ $selected['unit'] }} · {{ $selected['type'] }} · {{ $selected['goal'] === null ? 'No numeric goal' : 'Historical goal/limit: '.$selected['goal'] }}</p>@endif
+                <p class="text-xs text-zinc-400">With a goal, performance uses {{ $subjectId !== null ? 'the recorded' : 'your' }} measurement and historical setup; it may differ from {{ $subjectId !== null ? 'the recorded' : 'your' }} assessment. Without a numeric goal, Completed / Partial / Missed scores 100% / 50% / 0%.</p>
             @endif
             <div class="mt-3 flex flex-wrap gap-2">
                 @if($selected['link'])<flux:button :href="$selected['link']" wire:navigate>{{ $habitId ? 'Open daily entry' : 'Open daily overview' }}</flux:button>@endif
-                <flux:button @click="closeDetail()">Close details</flux:button>
+                <flux:button @click="closeDetail()" class="min-h-11">Close details</flux:button>
             </div>
         @else<p>Loading date details…</p>@endif
     </div>
     <details wire:ignore.self class="rounded-lg border border-zinc-800 p-3">
-        <summary class="cursor-pointer py-2 font-medium focus-visible:outline-2 focus-visible:outline-emerald-300">Accessible day list</summary>
+        <summary class="min-h-11 cursor-pointer py-3 font-medium focus-visible:outline-2 focus-visible:outline-emerald-300">Accessible day list</summary>
         <ul class="mt-3 divide-y divide-zinc-800">
             @foreach($listCells as $cell)
                 <li wire:key="list-{{ $cell['date'] }}"><button type="button" data-focus-key="list-{{ $cell['date'] }}" class="flex min-h-11 w-full flex-wrap items-center justify-between gap-2 py-2 text-left text-sm focus-visible:outline-2 focus-visible:outline-emerald-300"
@@ -84,9 +84,9 @@
             @endforeach
         </ul>
         <div class="mt-3 flex flex-wrap items-center gap-2">
-            <flux:button wire:click="moveList(-1)" :disabled="$listPage <= 1">Previous days</flux:button>
+            <flux:button wire:click="moveList(-1)" :disabled="$listPage <= 1" class="min-h-11">Previous days</flux:button>
             <span class="text-sm" role="status">Page {{ $listPage }} of {{ (int) ceil(count($report['cells']) / 20) }}</span>
-            <flux:button wire:click="moveList(1)" :disabled="$listPage >= ceil(count($report['cells']) / 20)">Next days</flux:button>
+            <flux:button wire:click="moveList(1)" :disabled="$listPage >= ceil(count($report['cells']) / 20)" class="min-h-11">Next days</flux:button>
         </div>
     </details>
     </section>
