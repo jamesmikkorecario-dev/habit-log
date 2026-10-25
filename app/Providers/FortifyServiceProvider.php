@@ -6,11 +6,16 @@ namespace App\Providers;
 use App\Actions\Fortify\CreateNewUser;
 /* @end-chisel-registration */
 use App\Actions\Fortify\ResetUserPassword;
+use App\Http\Responses\RecoveryLinkResponse;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
+use Laravel\Fortify\Contracts\FailedPasswordResetResponse;
+use Laravel\Fortify\Contracts\SuccessfulPasswordResetLinkRequestResponse;
 use Laravel\Fortify\Fortify;
 
 class FortifyServiceProvider extends ServiceProvider
@@ -20,7 +25,15 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(SuccessfulPasswordResetLinkRequestResponse::class, RecoveryLinkResponse::class);
+        $this->app->bind(FailedPasswordResetLinkRequestResponse::class, RecoveryLinkResponse::class);
+        $this->app->bind(FailedPasswordResetResponse::class, function ($app, array $parameters) {
+            // A guessed reset URL must not disclose whether its email exists either.
+            $status = $parameters['status'] === Password::INVALID_USER
+                ? Password::INVALID_TOKEN : $parameters['status'];
+
+            return new \Laravel\Fortify\Http\Responses\FailedPasswordResetResponse($status);
+        });
     }
 
     /**
@@ -49,6 +62,7 @@ class FortifyServiceProvider extends ServiceProvider
      */
     private function configureViews(): void
     {
+        Fortify::confirmPasswordView(fn () => view('pages::auth.confirm-password'));
         Fortify::loginView(fn () => view('pages::auth.login'));
         /* @chisel-registration */
         Fortify::registerView(fn () => view('pages::auth.register'));
@@ -64,6 +78,9 @@ class FortifyServiceProvider extends ServiceProvider
     {
         RateLimiter::for('public-auth', fn (Request $request) => Limit::perMinute(20)
             ->by($request->route()->getName().'|'.$request->ip()));
+
+        RateLimiter::for('password-confirmation', fn (Request $request) => Limit::perMinute(5)
+            ->by((string) $request->user()?->getAuthIdentifier()));
 
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());

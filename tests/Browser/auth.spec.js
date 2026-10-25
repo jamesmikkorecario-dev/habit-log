@@ -27,7 +27,7 @@ test("login validation, logout, password reset mail and normal CSRF", async ({
         .getByRole("button", { name: "Email password reset link", exact: true })
         .click();
     await expect(
-        page.getByText("We have emailed your password reset link.", {
+        page.getByText("If an account matches that email, a password reset link will be sent. Please wait a minute before trying again.", {
             exact: true,
         }),
     ).toBeVisible();
