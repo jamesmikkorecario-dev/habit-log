@@ -159,3 +159,72 @@ button.heat-cell:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
     height: var(--calendar-cell);
     font-size: 0.75rem;
 }
+
+/* The owner's dashboard is color-led; other activity views keep their cues. */
+.activity-calendar-minimal {
+    container-type: inline-size;
+    --calendar-weekday-width: 2.75rem;
+    --calendar-rail-gap: 0.5rem;
+    --calendar-padding: 0.25rem;
+    --calendar-border: 1px;
+    --calendar-gap: 0.25rem;
+    /* Reserve the weekday rail and scroll-region insets before dividing weeks.
+       One shared size keeps month columns, weekday rows and cells aligned. */
+    --calendar-cell: max(1rem, calc((100cqw - var(--calendar-weekday-width) - var(--calendar-rail-gap) - 2 * var(--calendar-padding) - 2 * var(--calendar-border) - (var(--calendar-columns) - 1) * var(--calendar-gap)) / var(--calendar-columns)));
+}
+.activity-calendar-minimal > .grid {
+    grid-template-columns: var(--calendar-weekday-width) minmax(0, 1fr);
+    gap: var(--calendar-rail-gap);
+}
+.activity-calendar-minimal [data-calendar-scroll] {
+    padding: var(--calendar-padding);
+    border-width: var(--calendar-border);
+}
+.activity-calendar-minimal .calendar-weekdays {
+    padding-top: calc(1.25rem + 0.5rem + var(--calendar-padding) + var(--calendar-border));
+}
+.dashboard-activity-history .heat-cell {
+    width: var(--calendar-cell, 1rem);
+    height: var(--calendar-cell, 1rem);
+    flex-shrink: 0;
+    border-radius: 3px;
+}
+.dashboard-activity-history .heat-cell[data-state="unlogged"] {
+    background: transparent;
+    border: 1px dashed #737373;
+}
+.dashboard-activity-history .heat-cell[data-state="pending"] {
+    background: #18181b;
+    border: 2px dotted #a1a1aa;
+}
+.dashboard-activity-history .heat-cell[data-state="na"] {
+    background: linear-gradient(135deg, transparent 45%, #737373 46%, #737373 54%, transparent 55%);
+    border: 1px solid #737373;
+}
+.dashboard-activity-history .heat-cell[data-state="unavailable"] {
+    background: repeating-linear-gradient(135deg, transparent 0 3px, #52525b 3px 4px);
+    border: 1px solid #737373;
+}
+.dashboard-activity-history .heat-cell[data-state="inactive"],
+.dashboard-activity-history .heat-cell[data-state="future"] {
+    background: transparent;
+    border: 1px solid #666666;
+}
+.dashboard-activity-history .calendar-state-key[open] {
+    width: 100%;
+}
+@media (forced-colors: active) {
+    .dashboard-activity-history .heat-cell[data-state="na"],
+    .dashboard-activity-history .heat-cell[data-state="unavailable"] {
+        forced-color-adjust: none;
+        border-color: CanvasText;
+        background-color: Canvas;
+        color: CanvasText;
+    }
+    .dashboard-activity-history .heat-cell[data-state="na"] {
+        background-image: linear-gradient(135deg, transparent 45%, CanvasText 46%, CanvasText 54%, transparent 55%);
+    }
+    .dashboard-activity-history .heat-cell[data-state="unavailable"] {
+        background-image: repeating-linear-gradient(135deg, transparent 0 3px, CanvasText 3px 4px);
+    }
+}

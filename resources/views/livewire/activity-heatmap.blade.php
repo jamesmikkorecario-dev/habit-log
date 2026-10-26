@@ -25,7 +25,8 @@
         </details>
     </section>
 
-    <section aria-label="Activity history" class="min-w-0 space-y-5 rounded-xl border border-zinc-800 bg-zinc-900/20 p-4 sm:p-5">
+    @php($minimalCalendar = $habitId === null && $subjectId === null)
+    <section aria-label="Activity history" @class(['min-w-0 space-y-5 rounded-xl border border-zinc-800 bg-zinc-900/20 p-4 sm:p-5', 'dashboard-activity-history' => $minimalCalendar])>
         <header class="flex flex-wrap items-start justify-between gap-4">
             <div><h2 class="text-xl font-semibold">Activity history</h2><p class="mt-2 text-sm text-zinc-400">{{ $report['year'] }} · Every day adds to the picture.</p></div>
             <div class="flex min-w-0 flex-wrap items-end gap-2">
@@ -40,7 +41,24 @@
             <p class="text-sm leading-relaxed text-zinc-400" data-activity-context>{{ $emptyMessages['yearly'] }}</p>
         @endif
         <p class="text-xs leading-relaxed text-zinc-400">Monday-first weeks. Use arrow keys to move between dates, Home / End for the year boundaries, and Enter or Space for details.</p>
-        <x-activity-heatmap :report="$report" />
+        <x-activity-heatmap :report="$report" :minimal="$minimalCalendar" />
+        @if($minimalCalendar)
+            <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-zinc-800 pt-4 text-xs text-zinc-400" aria-label="Performance legend">
+                <div class="flex items-center gap-2"><span>Performance</span><span>Less</span>@foreach(['0', '1', '2', '3', '4'] as $band)<span class="heat-cell heat-band-{{ $band }}" aria-hidden="true"></span>@endforeach<span>More</span></div>
+                <details wire:ignore.self class="calendar-state-key w-full sm:w-auto">
+                    <summary class="min-h-11 cursor-pointer content-center rounded text-zinc-300 focus-visible:outline-2 focus-visible:outline-emerald-300">Calendar key</summary>
+                    <div class="space-y-3 pb-2 pt-2">
+                        <p>Performance: 0%, above 0–25%, above 25–50%, above 50–75%, above 75–100%. Zero is recorded; not logged means a missing entry.</p>
+                        <ul class="flex flex-wrap gap-x-5 gap-y-3">
+                            @foreach(['unlogged' => 'Not logged', 'pending' => 'Pending', 'na' => 'N/A', 'unavailable' => 'Unavailable', 'inactive' => 'Inactive / future'] as $state => $meaning)
+                                <li class="flex items-center gap-2"><span class="heat-cell heat-band-neutral" data-state="{{ $state }}" aria-hidden="true"></span>{{ $meaning }}</li>
+                            @endforeach
+                        </ul>
+                        <p>N/A, unavailable, inactive and future dates have no score. Pending habits keep today's score provisional. Hover or focus a date for a preview; select it for details.</p>
+                    </div>
+                </details>
+            </div>
+        @else
         <div class="grid gap-5 border-t border-zinc-800 pt-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]" aria-label="Performance legend">
             <div>
                 <h3 class="text-sm font-medium">Performance intensity</h3>
@@ -57,9 +75,10 @@
                 <p class="mt-3 text-xs leading-relaxed text-zinc-400">Neutral days have dashed borders. Today's overall score is provisional while any habits remain pending.</p>
             </div>
         </div>
+        @endif
     <div x-show="detailOpen" x-cloak @keydown.escape.prevent.stop="closeDetail()" class="rounded-lg border border-emerald-800 bg-zinc-900 p-4" aria-live="polite" aria-atomic="true">
         @if($selected)
-            <h3 class="font-semibold" tabindex="-1" x-ref="detailHeading">{{ $selected['date'] }} · {{ $selected['label'] }}</h3>
+            <h3 class="font-semibold" tabindex="-1" x-ref="detailHeading" @if($minimalCalendar) x-effect="if (detailOpen) $nextTick(() => $el.focus())" @endif>{{ $selected['date'] }} · {{ $selected['label'] }}</h3>
             <p class="mt-2">{{ $selected['score'] === null ? 'No performance score' : number_format($selected['score'] * 100, 1).'% performance' }}{{ $selected['success'] ? ' · Full success' : '' }}</p>
             <p class="text-sm text-zinc-400">{{ $selected['count'] }} included · {{ $selected['na'] }} N/A · {{ $selected['pending'] }} pending · {{ $selected['unlogged'] }} unlogged · {{ $selected['unavailable'] }} unavailable</p>
             @if(isset($selected['assessment']))

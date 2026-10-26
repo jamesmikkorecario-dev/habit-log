@@ -1,5 +1,6 @@
 import './terminal-path';
 import './checkpoint-progress';
+import './activity-calendar';
 
 // Track history positions so cancelling Back/Forward can restore the original
 // entry before Livewire consumes popstate. No draft content enters history.
