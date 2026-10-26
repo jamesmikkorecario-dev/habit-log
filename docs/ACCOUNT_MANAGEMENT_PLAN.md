@@ -1,14 +1,18 @@
 # Account management implementation plan
 
-Status: Phases 1 (password) and 2 (verified email) are authorized and implemented; remaining features proposed. Phase 2 evidence is recorded in [the email-change report](ACCOUNT_EMAIL_CHANGE_REPORT.md) and [ADR-0009](adr/ADR-0009-VERIFIED-EMAIL-CHANGE.md). Reviewed on 2026-10-25 against synchronized `dev` at `e124ee14896706e31587b03b227a1b8029abadbe` (also the remote `dev` and `main` head at review time). The original plan below describes the broader follow-up. Current implementation evidence is recorded in [the Phase 1 report](ACCOUNT_PASSWORD_CHANGE_REPORT.md).
+Status: Phases 1 (password) and 2 (verified email) are implemented; Phase 3 session management is implemented and locally verified. Account deletion and Settings draft protection remain proposed. Phase 2 evidence is recorded in [the email-change report](ACCOUNT_EMAIL_CHANGE_REPORT.md) and [ADR-0009](adr/ADR-0009-VERIFIED-EMAIL-CHANGE.md). Reviewed on 2026-10-25 against synchronized `dev` at `e124ee14896706e31587b03b227a1b8029abadbe` (also the remote `dev` and `main` head at review time). The original plan below describes the broader follow-up. Current implementation evidence is recorded in [the Phase 1 report](ACCOUNT_PASSWORD_CHANGE_REPORT.md).
+
+## Phase 3 accepted scope
+
+The Phase 3 request explicitly includes individual and all-other session revocation, superseding the original individual-session deferral below. Runtime inspection confirmed database sessions on the default MySQL connection. The user accepted that individual revocation clears account-wide remembered sign-ins while other active sessions remain signed in. Durable hashed revocation records, stable session origins and serialized session writes are required to prevent stale payload restoration; [ADR-0010](adr/ADR-0010-SESSION-MANAGEMENT.md) records the design. IP addresses and raw user-agent/session data are omitted from the UI. Account deletion and Settings draft protection remain excluded. See [the session report](ACCOUNT_SESSION_MANAGEMENT_REPORT.md).
 
 ## Phase 2 accepted clarification
 
-The 2026-10-26 request authorizes verified email changes, including the pending-request migration and password/reset cancellation hooks. The user explicitly chose identical request/resend behavior for occupied and unoccupied addresses, with uniqueness checked at confirmation after mailbox control is proved. This supersedes the original immediate-availability check in step 1 below. Signed links, fresh password checks at both steps, 60-minute expiry, token rotation, owner/generation checks and session revocation follow the plan. Only Profile and Security navigation remain enabled; session-management UI, deletion and Settings draft protection are still deferred.
+The 2026-10-26 request authorizes verified email changes, including the pending-request migration and password/reset cancellation hooks. The user explicitly chose identical request/resend behavior for occupied and unoccupied addresses, with uniqueness checked at confirmation after mailbox control is proved. This supersedes the original immediate-availability check in step 1 below. Signed links, fresh password checks at both steps, 60-minute expiry, token rotation, owner/generation checks and session revocation follow the plan. At Phase 2 closeout, only Profile and Security navigation were enabled; session-management UI was deferred to Phase 3. Deletion and Settings draft protection remain deferred.
 
 ## Phase 1 sequencing adjustment
 
-The 2026-10-25 implementation request authorized password changes only. At that point, pending email state did not exist, so its migration and cancellation hook were deferred to Phase 2; they were not a strict dependency for password changes. Phase 1 introduced no migration and enabled only Profile/Security navigation and the password form. Phase 2 now adds pending email state and cancellation hooks, as described above. Session-management UI, deletion and draft protection remain proposed; the password and email lifecycles are accepted in ADR-0008 and ADR-0009.
+The 2026-10-25 implementation request authorized password changes only. At that point, pending email state did not exist, so its migration and cancellation hook were deferred to Phase 2; they were not a strict dependency for password changes. Phase 1 introduced no migration and enabled only Profile/Security navigation and the password form. Phase 2 now adds pending email state and cancellation hooks, as described above. The password and email lifecycles are accepted in ADR-0008 and ADR-0009; the subsequently authorized session-management scope is recorded above. Deletion and draft protection remain proposed.
 
 ## Scope and decisions
 
@@ -24,7 +28,7 @@ Recommended implementation contracts:
 | Email | Keep the old login/recovery address until the new address is verified and the owner confirms the change with their current password. |
 | Verification | One pending request per owner; 60-minute lifetime; replacement/resend invalidates the previous token. No registration-wide verification gate. |
 | Sessions | List the owner's active sessions; provide **Sign out other sessions** and existing **Sign out** for the current session. |
-| Individual session removal | Outside this first implementation. Deleting a single session row is insufficient against stale writes; a later design would need durable revocation and remembered-device semantics. |
+| Individual session removal | Authorized in Phase 3 with durable revocation and the explicitly accepted shared remember-token limitation; see ADR-0010. |
 | Account deletion | Immediate, confirmed, transactional deletion of account-owned live data, including history and trash. No account recovery window. Backup retention is described separately and must be settled before release. |
 | Settings drafts | Warn before abandoning changed forms; no autosave or persistent draft storage; security redirects take precedence. |
 
@@ -120,7 +124,7 @@ Depends on password/session finalization and the pending-request migration. The 
 
 Use the configured database session table and Laravel session authentication. Query only rows with the authenticated `user_id` and an activity timestamp within the configured lifetime. Label the current session using the server-side session ID comparison. Paginate if necessary; select only metadata needed for the list. Do not decode session payloads or send raw session IDs to the client.
 
-Display a conservative browser/device description derived from escaped user-agent text, last activity in the user's timezone, and IP address as connection metadata rather than a claimed location. These are sessions, not verified physical devices. Refresh explicitly; no polling or new device-detection dependency. The current row may not exist until a response is saved, so provide a reliable **This session** presentation without assuming it appears in the query.
+Display a conservative browser/device description derived from escaped user-agent text, last activity in the user's timezone, and omit IP addresses from the interface; device names are estimates rather than verified identities. These are sessions, not verified physical devices. Refresh explicitly; no polling or new device-detection dependency. The current row may not exist until a response is saved, so provide a reliable **This session** presentation without assuming it appears in the query.
 
 **Sign out other sessions** requires the current password, account-bound throttling, and an explanation that remembered logins on other browsers will also stop working. Under the user lock, force a fresh password hash using Laravel's native other-device invalidation behavior, rotate the global remember token, delete other session rows, and finalize the current session. The actual password string does not change. Existing **Sign out** handles leaving the current session.
 
@@ -128,13 +132,13 @@ Removing rows alone is not the security boundary: a request already in flight ca
 
 ### Schema, accessibility, and tests
 
-No new table is required for the recommended scope. Measure the owner/activity query using existing `user_id` and `last_activity` indexes; add `(user_id, last_activity)` only if measured access patterns justify it. Do not use the absence of a foreign key on `sessions.user_id` as an ownership guarantee.
+The accepted individual-revocation scope adds session metadata and `session_revocations`; see ADR-0010. Retain the existing owner/activity indexes unless measured access patterns justify additional indexing. Do not use the absence of a foreign key on `sessions.user_id` as an ownership guarantee.
 
-Use a semantic list/table that stacks on mobile, unambiguous **This session** text, and an accessible confirmation surface with focus restored on cancellation. Announce server-confirmed completion. Do not imply an unselected device can be individually revoked.
+Use a semantic list/table that stacks on mobile, unambiguous **This session** text, and an accessible confirmation surface with focus restored on cancellation. Announce server-confirmed completion. Individual controls target only the selected owner session; explain their account-wide effect on remembered sign-ins.
 
 PHP: owner isolation, expired-row filtering, metadata escaping, missing current row, guest/wrong-password/throttle rejection, repeated revocation, transaction rollback, current-session survival, remember-token invalidation, and stale-write interleavings against MySQL. Browser: at least three contexts, with a remembered-only context and a preloaded Livewire form; confirm both other contexts lose access while the initiator can still save. Verify stale pages cannot restore authorization through Back/Forward.
 
-Implement the common revocation mechanism before the password/email surfaces rely on it, then add the session list and explicit action. Individual-device removal needs a separate design for persistent revocation of stale session IDs and the global remember token; it is not implied by this plan's list UI.
+Implement the common revocation mechanism before the password/email surfaces rely on it, then add the session list and explicit action. The explicit Phase 3 request now includes individual-session removal; ADR-0010 supplies the required persistent revocation and global remember-token design.
 
 ## 4. Confirmed account deletion
 

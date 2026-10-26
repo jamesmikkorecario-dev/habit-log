@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\RejectRevokedSession;
 use App\Http\Middleware\WebSecurity;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
@@ -16,7 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(append: [AuthenticateSession::class, WebSecurity::class]);
+        $middleware->web(append: [RejectRevokedSession::class, AuthenticateSession::class, WebSecurity::class]);
+        $middleware->prependToPriorityList(AuthenticateSession::class, RejectRevokedSession::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontFlash(['current_password', 'password', 'password_confirmation', 'token', 'signature']);
