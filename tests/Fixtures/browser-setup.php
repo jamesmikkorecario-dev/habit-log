@@ -23,6 +23,7 @@ try {
     }
     require __DIR__.'/entry-history.php';
     require __DIR__.'/shared-profiles.php';
+    require __DIR__.'/heatmap-review.php';
     echo "Prepared isolated browser database.\n";
 } catch (Throwable $exception) {
     fwrite(STDERR, 'Browser setup failed ('.$exception::class."). No browser server will be started.\n");
