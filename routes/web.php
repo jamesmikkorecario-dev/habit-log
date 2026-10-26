@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Settings\EmailChangeController;
+use App\Http\Controllers\Settings\SessionController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -21,6 +22,7 @@ Route::middleware('auth')->group(function () {
     Route::livewire('dashboard', 'pages::dashboard')->name('dashboard');
     Route::livewire('settings/profile', 'pages::settings.profile')->name('settings.profile');
     Route::get('settings/security', [EmailChangeController::class, 'settings'])->name('settings.security');
+    Route::post('settings/security/sessions/revoke', [SessionController::class, 'destroy'])->middleware('throttle:session-revoke')->name('settings.sessions.revoke');
     Route::controller(EmailChangeController::class)->prefix('settings/security/email')->name('settings.email.')->group(function () {
         Route::post('/', 'store')->middleware(['throttle:email-change', 'throttle:email-delivery'])->name('request');
         Route::post('/resend', 'store')->middleware(['throttle:email-change', 'throttle:email-delivery'])->name('resend');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Settings;
 
 use App\Actions\Accounts\EmailChanges;
 use App\Actions\Accounts\FinalizeCredentialSession;
+use App\Actions\Accounts\ManageSessions;
 use App\Http\Controllers\Controller;
 use App\Models\PendingEmailChange;
 use App\Notifications\EmailChanged;
@@ -34,7 +35,7 @@ class EmailChangeController extends Controller
 
     public function settings(Request $request)
     {
-        return view('pages.settings.security', ['pendingEmail' => PendingEmailChange::where('user_id', $request->user()->id)->first()]);
+        return view('pages.settings.security', ['pendingEmail' => PendingEmailChange::where('user_id', $request->user()->id)->first(), 'sessionListing' => app(ManageSessions::class)->listing($request)]);
     }
 
     public function store(Request $request, EmailChanges $changes)

@@ -45,5 +45,6 @@
         </section>
 
         @include('pages.settings.email-change')
+        @include('pages.settings.sessions')
     </div>
 </x-layouts::app>
