@@ -1,10 +1,14 @@
 # Account management implementation plan
 
-Status: Phase 1 password changes authorized and implemented; remaining features proposed. Reviewed on 2026-10-25 against synchronized `dev` at `e124ee14896706e31587b03b227a1b8029abadbe` (also the remote `dev` and `main` head at review time). The original plan below describes the broader follow-up. Current implementation evidence is recorded in [the Phase 1 report](ACCOUNT_PASSWORD_CHANGE_REPORT.md).
+Status: Phases 1 (password) and 2 (verified email) are authorized and implemented; remaining features proposed. Phase 2 evidence is recorded in [the email-change report](ACCOUNT_EMAIL_CHANGE_REPORT.md) and [ADR-0009](adr/ADR-0009-VERIFIED-EMAIL-CHANGE.md). Reviewed on 2026-10-25 against synchronized `dev` at `e124ee14896706e31587b03b227a1b8029abadbe` (also the remote `dev` and `main` head at review time). The original plan below describes the broader follow-up. Current implementation evidence is recorded in [the Phase 1 report](ACCOUNT_PASSWORD_CHANGE_REPORT.md).
+
+## Phase 2 accepted clarification
+
+The 2026-10-26 request authorizes verified email changes, including the pending-request migration and password/reset cancellation hooks. The user explicitly chose identical request/resend behavior for occupied and unoccupied addresses, with uniqueness checked at confirmation after mailbox control is proved. This supersedes the original immediate-availability check in step 1 below. Signed links, fresh password checks at both steps, 60-minute expiry, token rotation, owner/generation checks and session revocation follow the plan. Only Profile and Security navigation remain enabled; session-management UI, deletion and Settings draft protection are still deferred.
 
 ## Phase 1 sequencing adjustment
 
-The 2026-10-25 implementation request authorizes password changes only. Pending email state does not exist, so its migration and cancellation hook are deferred until email-change implementation; they are not a strict dependency for password changes. No migration is introduced in Phase 1. Only Profile/Security navigation and the password form are enabled, with no session list, deletion surface, or draft guard. The password/reset locking and shared credential replacement are current dependencies. The broader contracts below remain proposed except for the password lifecycle accepted in ADR-0008.
+The 2026-10-25 implementation request authorized password changes only. At that point, pending email state did not exist, so its migration and cancellation hook were deferred to Phase 2; they were not a strict dependency for password changes. Phase 1 introduced no migration and enabled only Profile/Security navigation and the password form. Phase 2 now adds pending email state and cancellation hooks, as described above. Session-management UI, deletion and draft protection remain proposed; the password and email lifecycles are accepted in ADR-0008 and ADR-0009.
 
 ## Scope and decisions
 
@@ -24,7 +28,7 @@ Recommended implementation contracts:
 | Account deletion | Immediate, confirmed, transactional deletion of account-owned live data, including history and trash. No account recovery window. Backup retention is described separately and must be settled before release. |
 | Settings drafts | Warn before abandoning changed forms; no autosave or persistent draft storage; security redirects take precedence. |
 
-These are recommendations for implementation review, not decisions already accepted by the product documents. Record the deletion semantics and credential/session lifecycle in an accepted ADR and update the product/UI contracts when implementation is authorized. Do not silently reinterpret existing history-preservation rules or mark roadmap work complete from this plan.
+The password, email and verification contracts are accepted in the product documents and ADR-0008/ADR-0009. The remaining rows are recommendations for implementation review. Record deletion semantics and any further credential/session changes in an accepted ADR and update the product/UI contracts when implementation is authorized. Do not silently reinterpret existing history-preservation rules or mark roadmap work complete from this plan.
 
 ## Reviewed foundations
 
@@ -88,7 +92,7 @@ Use the existing registration/login normalization and database uniqueness semant
 
 ### Request, verification, and cancellation flow
 
-1. The owner submits a new email and current password. Lock the user; validate the address differs from the current address and is currently available without revealing another account's identity. Replace the owner's pending request with a fresh generation/token. Commit before sending mail.
+1. The owner submits a new email and current password. Lock the user; validate the address differs from the current address. Per the accepted Phase 2 clarification, do not disclose availability at request time; check uniqueness only after mailbox verification at confirmation. Replace the owner's pending request with a fresh generation/token. Commit before sending mail.
 2. Send a temporary signed verification link bound to the request, owner, and token to the proposed address. Keep the current address active for login and recovery. No unverified address receives password-reset authority.
 3. A GET opens an authenticated confirmation page without changing anything. Mail scanners cannot consume or apply the request. A logged-out owner may log in using the existing address and return to this page; a different signed-in account gets no pending-address disclosure.
 4. Final POST requires CSRF and the current password, and revalidates signature, token hash, expiry, source email, current owner, and request generation under user-then-request locks. Update `users.email`, set `email_verified_at`, delete the pending request and old-address reset token, rotate remembered access, and revoke other sessions atomically. Force a fresh password hash for session invalidation because changing email alone would leave the existing hash unchanged. Preserve the initiating browser through the shared flow.

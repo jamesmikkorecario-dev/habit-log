@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\EmailChangeController;
 use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
@@ -19,5 +20,12 @@ Route::middleware('auth')->group(function () {
     Route::livewire('habits/{habit}', 'pages::habits.show')->whereNumber('habit')->name('habits.show');
     Route::livewire('dashboard', 'pages::dashboard')->name('dashboard');
     Route::livewire('settings/profile', 'pages::settings.profile')->name('settings.profile');
-    Route::view('settings/security', 'pages.settings.security')->name('settings.security');
+    Route::get('settings/security', [EmailChangeController::class, 'settings'])->name('settings.security');
+    Route::controller(EmailChangeController::class)->prefix('settings/security/email')->name('settings.email.')->group(function () {
+        Route::post('/', 'store')->middleware(['throttle:email-change', 'throttle:email-delivery'])->name('request');
+        Route::post('/resend', 'store')->middleware(['throttle:email-change', 'throttle:email-delivery'])->name('resend');
+        Route::post('/cancel', 'cancel')->middleware('throttle:email-change')->name('cancel');
+        Route::get('/verify', 'verify')->name('verify');
+        Route::post('/verify', 'confirm')->middleware('throttle:email-change')->name('confirm');
+    });
 });

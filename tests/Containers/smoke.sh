@@ -47,7 +47,8 @@ for asset in $assets; do curl --fail --silent "$origin/build/$asset" >/dev/null;
 # Keep token-bearing paths and all query strings out of Apache access logs.
 curl --silent "$origin/reset-password/container-token-canary?email=query-canary" >/dev/null
 curl --silent "$origin/login?container-query-canary=1" >/dev/null
-if docker logs "$container" 2>&1 | grep -E 'container-token-canary|query-canary'; then
+curl --silent "$origin/settings/security/email/verify?token=email-change-token-canary&signature=email-change-signature-canary" >/dev/null
+if docker logs "$container" 2>&1 | grep -E 'container-token-canary|query-canary|email-change-token-canary|email-change-signature-canary'; then
     echo 'Sensitive URL reached container logs.' >&2; exit 1
 fi
 echo 'Production image passed: non-root, runtime-only files, health/login/assets, document root, CSRF and log privacy.'

@@ -8,6 +8,7 @@ use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 use Symfony\Component\Process\Process;
 use Tests\TestCase;
 
@@ -20,7 +21,8 @@ class PasswordChangeConcurrencyTest extends TestCase
         try {
             foreach (['change', 'reset'] as $operation) {
                 $user = User::factory()->create();
-                $worker = new Process([PHP_BINARY, base_path('tests/Fixtures/password-write-worker.php'), (string) $user->id, $operation], base_path(), [
+                $token = $operation === 'reset' ? Password::createToken($user) : '';
+                $worker = new Process([PHP_BINARY, base_path('tests/Fixtures/password-write-worker.php'), (string) $user->id, $operation, $token], base_path(), [
                     'APP_ENV' => 'testing', 'DB_URL' => '', 'BCRYPT_ROUNDS' => '4',
                     'PASSWORD_TEST_DB' => json_encode(config('database.connections.mysql'), JSON_THROW_ON_ERROR),
                 ]);

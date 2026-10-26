@@ -43,5 +43,7 @@
                 <p role="status" class="text-sm text-zinc-400" x-show="submitting" x-cloak>Changing your password…</p>
             </form>
         </section>
+
+        @include('pages.settings.email-change')
     </div>
 </x-layouts::app>

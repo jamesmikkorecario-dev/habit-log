@@ -42,7 +42,7 @@ class PasswordChangeTest extends TrackingTestCase
         $this->get('/settings/security')->assertOk()->assertSee('Security Settings')
             ->assertSee('autocomplete="current-password"', false)->assertSee('autocomplete="new-password"', false)
             ->assertSee('name="_token"', false)->assertSee('value="PUT"', false)
-            ->assertDontSee('wire:model')->assertDontSee('Delete my account')->assertDontSee('Change email');
+            ->assertDontSee('wire:model')->assertDontSee('Delete my account')->assertSee('Change email');
     }
 
     public function test_success_rotates_credentials_and_current_session_without_changing_profile(): void

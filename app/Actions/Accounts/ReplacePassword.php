@@ -2,6 +2,7 @@
 
 namespace App\Actions\Accounts;
 
+use App\Models\PendingEmailChange;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +16,7 @@ class ReplacePassword
     {
         $user->forceFill(['password' => Hash::make($password), 'remember_token' => Str::random(60)])->save();
         Password::broker(config('fortify.passwords'))->deleteToken($user);
+        PendingEmailChange::where('user_id', $user->id)->delete();
 
         // Explicit deletion also removes legacy sessions without a hash marker.
         // AuthenticateSession rejects stale sessions written back after this commit.
