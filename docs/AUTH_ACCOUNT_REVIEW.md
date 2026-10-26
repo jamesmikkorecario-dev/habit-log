@@ -158,3 +158,7 @@ Examples: [mobile recovery validation](../storage/app/auth-security-fixes/forgot
 Command logs and tested-source hashes remain in ignored `storage/app/auth-security-fixes/`; generated mail, tokens, screenshots and logs are not source changes. The test harness stopped its preview server. No packages or browser libraries were installed. Hosted Actions was not triggered because committing/pushing was forbidden; the local CI commands, full browser suite, dependency audits and container checks passed.
 
 Suggested future commit message: `fix(auth): revoke reset sessions and harden account recovery`.
+
+## Account management Phase 1 follow-up
+
+The previously missing authenticated password-change surface is now implemented at Settings → Security. It verifies the current password, retains the initiating browser, revokes other sessions/remembered access/reset links, and rejects stale credential writes under the user lock. [The implementation report](ACCOUNT_PASSWORD_CHANGE_REPORT.md) records the current validation evidence. Email changes, device/session-management UI, account deletion, and Settings draft protection are still deferred; the earlier findings table remains the historical review snapshot.

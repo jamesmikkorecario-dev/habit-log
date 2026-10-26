@@ -32,3 +32,7 @@ Archive stops future tracking but preserves history. Trash is recoverable for ab
 ## MVP exclusions
 
 No native app, PWA, reminders, notifications, public API, AI features, gamification, React/Vue, Redis, WebSockets, queues without a demonstrated need, microservices, comments, or messaging.
+
+## Account management Phase 1
+
+Authenticated owners can change their password in Settings → Security by providing the current password and a valid confirmed new password. The initiating browser stays signed in with a rotated session and CSRF token; other sessions, remembered logins, and existing reset links lose access. Failed validation leaves credentials and activity unchanged. This follow-up does not change privacy, historical tracking, or the scope of habit trash. Email changes, session-management UI, account deletion, and Settings draft protection remain deferred.

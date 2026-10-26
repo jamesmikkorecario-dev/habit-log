@@ -52,9 +52,27 @@ export async function register(page, prefix = "browser") {
     await page
         .getByLabel("Confirm password", { exact: true })
         .fill("Browser-test-123!");
-    await page
-        .getByRole("button", { name: "Create account", exact: true })
-        .click();
+    const [response] = await Promise.all([
+        page.waitForResponse(response =>
+            new URL(response.url()).pathname === "/register" &&
+            response.request().method() === "POST",
+        ),
+        page.getByRole("button", { name: "Create account", exact: true }).click(),
+    ]);
+    const status = response.status();
+    const location = response.headers()["location"];
+    const destination = location
+        ? new URL(location, response.url()).pathname
+        : "(none)";
+    if (status !== 302 || !/^\/(dashboard|people)$/.test(destination)) {
+        // Never include submitted values, response bodies, cookies, or URL
+        // queries: status/route/retry timing are enough to diagnose rejection.
+        throw new Error(
+            `Registration failed: HTTP ${status}; redirect ${destination}; ` +
+            `Retry-After ${response.headers()["retry-after"] ?? "(none)"}. ` +
+            "Expected a redirect to /dashboard or /people.",
+        );
+    }
     await page.waitForURL(/\/(dashboard|people)$/);
     await page.goto("/settings/profile");
     await page.getByLabel("Username", { exact: true }).fill(username);

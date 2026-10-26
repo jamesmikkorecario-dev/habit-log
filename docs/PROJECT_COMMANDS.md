@@ -154,3 +154,21 @@ HABIT_LOG_RESTORE_REHEARSAL=1 python3 tests/Fixtures/restore-rehearsal.py
 ```
 
 It takes the shared test lock, exports only `habit_log_test`, encrypts/decrypts the synthetic export with GPG, imports into a newly named `habit_log_restore_*` database, compares all table counts/checksums and application analytics/journal policies, then revokes its temporary read grant and drops only that new database. It requires the local Compose root account and installed GPG; it never exports/resets development data. The temporary encryption key is destroyed after the drill, so the retained encrypted artifact is evidence, not a reusable production backup. Exact measurements appear in `storage/app/phase7-checks/restore.json`.
+
+## Account management Phase 1 verification
+
+Run serially against the guarded test database:
+
+```bash
+php artisan test tests/Feature/Auth/PasswordChangeTest.php tests/Feature/Auth/PasswordChangeConcurrencyTest.php tests/Feature/Auth/RecoverySecurityTest.php --compact
+HABIT_LOG_E2E=1 E2E_NODE='/mnt/c/Program Files/nodejs/node.exe' npm run test:e2e -- password-change.spec.js
+composer ci:check
+npm run build
+composer audit --locked
+npm audit
+HABIT_LOG_E2E=1 E2E_NODE='/mnt/c/Program Files/nodejs/node.exe' npm run test:e2e
+docker build --target production -t habit-log:account-password-check .
+sh tests/Containers/smoke.sh habit-log:account-password-check
+```
+
+`E2E_NODE` above selects the existing Windows Chrome setup from WSL; omit it in CI with installed Playwright Chromium. The production image check is disposable packaging verification, not deployment. No migration is required for password changes.

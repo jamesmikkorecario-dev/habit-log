@@ -122,7 +122,7 @@ class RecoverySecurityTest extends TestCase
         $snapshot = html_entity_decode($matches[1], ENT_QUOTES | ENT_HTML5);
         $oldHash = session('password_hash_web');
         $this->assertNotEmpty($oldHash);
-        app(ResetUserPassword::class)->reset($user, ['password' => 'New-password-123!', 'password_confirmation' => 'New-password-123!']);
+        app(ResetUserPassword::class)->reset($user, ['token' => Password::createToken($user), 'password' => 'New-password-123!', 'password_confirmation' => 'New-password-123!']);
         foreach (['$refresh', 'save'] as $method) {
             $this->actingAs($user->fresh())->withSession(['password_hash_web' => $oldHash])
                 ->withHeader('X-Livewire', 'true')->postJson(Livewire::getUpdateUri(), [

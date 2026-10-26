@@ -45,3 +45,7 @@ Directional follow management and username-based read-only profiles/habits are i
 Security, privacy, accessibility, mobile, performance/query reviews; critical E2E coverage and deployment documentation.
 
 Local implementation passed 336 tests / 3,737 assertions, Pint, the production build, 14 browser scenarios, comparative performance checks and isolated recovery verification. [The closeout](PHASE_7_CLOSEOUT.md) records fixes, critical browser coverage, representative measurements, recovery rehearsal evidence and open assistive/device, hosted CI, target-host and capacity gates. The Phase 7 plan and findings ledger were retired during commit preparation; their remaining release gates are retained in the closeout. Phase 7 release verification remains incomplete until those gates are resolved. Habit permanent deletion and automatic expiry remain deferred.
+
+## Account management follow-up — Phase 1
+
+Authenticated password changes are implemented in Settings → Security, including current-password checks, rate limiting, session/reset-token revocation, and stale-write protection. See [the implementation report](ACCOUNT_PASSWORD_CHANGE_REPORT.md) for verification and limitations and [ADR-0008](adr/ADR-0008-AUTHENTICATED-PASSWORD-CHANGE.md) for the accepted credential lifecycle. Email changes, session-management UI, account deletion, and Settings draft protection in [the broader plan](ACCOUNT_MANAGEMENT_PLAN.md) remain deferred. No original roadmap phase or trash/history contract is broadened.

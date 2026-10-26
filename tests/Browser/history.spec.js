@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { register, createHabit } from './support.js';
 
 for (const editor of ['activity', 'journal']) {

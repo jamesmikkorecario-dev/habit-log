@@ -19,4 +19,5 @@ Route::middleware('auth')->group(function () {
     Route::livewire('habits/{habit}', 'pages::habits.show')->whereNumber('habit')->name('habits.show');
     Route::livewire('dashboard', 'pages::dashboard')->name('dashboard');
     Route::livewire('settings/profile', 'pages::settings.profile')->name('settings.profile');
+    Route::view('settings/security', 'pages.settings.security')->name('settings.security');
 });

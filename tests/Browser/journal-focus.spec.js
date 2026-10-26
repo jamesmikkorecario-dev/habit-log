@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { action, register } from './support.js';
 
 for (const dismissal of ['Escape', 'Cancel', 'Close modal']) {
