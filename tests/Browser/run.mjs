@@ -55,8 +55,14 @@ if (setup.status !== 0) {
 const log = openSync("storage/app/phase7-checks/browser-server.log", "w");
 const server = spawn(
     "php",
-    ["artisan", "serve", "--host=127.0.0.1", `--port=${port}`, "--no-reload"],
-    { env, stdio: ["ignore", log, log], detached: true },
+    [
+        // Laravel reads LARAVEL_STORAGE_PATH from $_ENV/$_SERVER. PHP's web
+        // SAPI omits it with GPCS, even when getenv() sees the runner's value.
+        "-d", "variables_order=EGPCS",
+        "-S", `127.0.0.1:${port}`,
+        resolve("vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php"),
+    ],
+    { cwd: resolve("public"), env, stdio: ["ignore", log, log], detached: true },
 );
 let runner;
 function stop() {
@@ -107,7 +113,19 @@ try {
             toRunnerPath("playwright.config.js"),
             ...process.argv.slice(2),
         ],
-        { stdio: "inherit", env: process.env },
+        {
+            stdio: "inherit",
+            env: {
+                ...process.env,
+                HABIT_LOG_E2E_CACHE_PATH: toRunnerPath(resolve(runtime, "framework/cache/data")),
+                ...(windows ? {
+                    // WSL does not forward arbitrary environment variables
+                    // when launching the optional Windows Node executable.
+                    WSLENV: [process.env.WSLENV, "HABIT_LOG_E2E", "HABIT_LOG_E2E_CACHE_PATH"]
+                        .filter(Boolean).join(":"),
+                } : {}),
+            },
+        },
     );
     process.exitCode = await new Promise((resolve, reject) => {
         runner.once("error", reject);

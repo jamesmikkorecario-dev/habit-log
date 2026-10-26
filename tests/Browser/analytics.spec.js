@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { action, register, createHabit } from "./support.js";
 
 test("known numeric score, historical setup, stale activity and heatmap navigation", async ({

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { mkdirSync } from 'node:fs';
 import { action, register, createHabit } from './support.js';
 

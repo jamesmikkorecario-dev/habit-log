@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import AxeBuilder from '@axe-core/playwright';
 import { register, createHabit, action } from './support.js';
 import { mkdirSync, writeFileSync } from 'node:fs';

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures.js";
 import { action } from "./support.js";
 const base = "http://127.0.0.1:8017";
 async function register(p, username) {
