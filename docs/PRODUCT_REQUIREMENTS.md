@@ -35,4 +35,11 @@ No native app, PWA, reminders, notifications, public API, AI features, gamificat
 
 ## Account management Phase 1
 
-Authenticated owners can change their password in Settings → Security by providing the current password and a valid confirmed new password. The initiating browser stays signed in with a rotated session and CSRF token; other sessions, remembered logins, and existing reset links lose access. Failed validation leaves credentials and activity unchanged. This follow-up does not change privacy, historical tracking, or the scope of habit trash. Email changes, session-management UI, account deletion, and Settings draft protection remain deferred.
+Authenticated owners can change their password in Settings → Security by providing the current password and a valid confirmed new password. The initiating browser stays signed in with a rotated session and CSRF token; other sessions, remembered logins, and existing reset links lose access. Failed validation leaves credentials and activity unchanged. This follow-up does not change privacy, historical tracking, or the scope of habit trash. Session-management UI, account deletion, and Settings draft protection remain deferred; verified email changes are specified below.
+
+
+## Account management Phase 2
+
+Owners can request a verified login-email change in Settings → Security using their current password. The existing email stays active until a 60-minute, single-use link to the proposed address is confirmed with the current password. Resend/replacement invalidates older links; cancellation and expired-link recovery are supported. Request/resend feedback does not disclose address availability; uniqueness is enforced on confirmation after mailbox control is proved, as explicitly selected by the user. Confirmation retains that browser and revokes other sessions, remembered logins and old reset links. Password changes/resets cancel pending email changes. Habits, journals, relationships, history and privacy are preserved.
+
+Verification mail and a token-free alert to the previous address are narrowly scoped transactional security emails, explicitly excepted from the general notifications exclusion. No registration-wide verification gate, session-management UI, account deletion or Settings draft protection is added. See [ADR-0009](adr/ADR-0009-VERIFIED-EMAIL-CHANGE.md).

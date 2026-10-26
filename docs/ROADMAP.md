@@ -48,4 +48,9 @@ Local implementation passed 336 tests / 3,737 assertions, Pint, the production b
 
 ## Account management follow-up — Phase 1
 
-Authenticated password changes are implemented in Settings → Security, including current-password checks, rate limiting, session/reset-token revocation, and stale-write protection. See [the implementation report](ACCOUNT_PASSWORD_CHANGE_REPORT.md) for verification and limitations and [ADR-0008](adr/ADR-0008-AUTHENTICATED-PASSWORD-CHANGE.md) for the accepted credential lifecycle. Email changes, session-management UI, account deletion, and Settings draft protection in [the broader plan](ACCOUNT_MANAGEMENT_PLAN.md) remain deferred. No original roadmap phase or trash/history contract is broadened.
+Authenticated password changes are implemented in Settings → Security, including current-password checks, rate limiting, session/reset-token revocation, and stale-write protection. See [the implementation report](ACCOUNT_PASSWORD_CHANGE_REPORT.md) for verification and limitations and [ADR-0008](adr/ADR-0008-AUTHENTICATED-PASSWORD-CHANGE.md) for the accepted credential lifecycle. Session-management UI, account deletion, and Settings draft protection in [the broader plan](ACCOUNT_MANAGEMENT_PLAN.md) remain deferred. Email changes are covered by Phase 2 below. No original roadmap phase or trash/history contract is broadened.
+
+
+## Account management follow-up — Phase 2
+
+Verified login-email changes are implemented with current-password checks, expiring signed links, pending/resend/cancel states, uniqueness at verified confirmation, session revocation and password/reset cancellation. The additive pending-request migration and recovery race protection follow [ADR-0009](adr/ADR-0009-VERIFIED-EMAIL-CHANGE.md). See [the implementation report](ACCOUNT_EMAIL_CHANGE_REPORT.md) for verification and release limits. This does not expand account deletion, session-management UI, Settings draft protection or habit trash scope.

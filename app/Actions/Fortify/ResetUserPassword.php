@@ -29,7 +29,7 @@ class ResetUserPassword implements ResetsUserPasswords
             $fresh = User::query()->lockForUpdate()->find($user->getKey());
             // The broker validated before acquiring this lock. Recheck after any
             // concurrent credential change and consume the token atomically.
-            if (! $fresh || ! hash_equals($user->getAuthPassword(), $fresh->getAuthPassword())
+            if (! $fresh || $fresh->email !== $user->email || ! hash_equals($user->getAuthPassword(), $fresh->getAuthPassword())
                 || ! is_string($input['token'] ?? null)
                 || ! Password::broker(config('fortify.passwords'))->tokenExists($fresh, $input['token'])) {
                 throw ValidationException::withMessages(['email' => __(Password::INVALID_TOKEN)]);

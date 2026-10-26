@@ -7,6 +7,7 @@ use App\Actions\Fortify\CreateNewUser;
 /* @end-chisel-registration */
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
+use App\Auth\AccountPasswordBrokerManager;
 use App\Http\Responses\PasswordUpdateResponse;
 use App\Http\Responses\RecoveryLinkResponse;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -27,6 +28,7 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->extend('auth.password', fn ($manager, $app) => new AccountPasswordBrokerManager($app));
         $this->app->bind(\Laravel\Fortify\Contracts\PasswordUpdateResponse::class, PasswordUpdateResponse::class);
         $this->app->bind(SuccessfulPasswordResetLinkRequestResponse::class, RecoveryLinkResponse::class);
         $this->app->bind(FailedPasswordResetLinkRequestResponse::class, RecoveryLinkResponse::class);
@@ -84,6 +86,11 @@ class FortifyServiceProvider extends ServiceProvider
             ->by($request->route()->getName().'|'.$request->ip()));
 
         RateLimiter::for('password-confirmation', fn (Request $request) => Limit::perMinute(5)
+            ->by((string) $request->user()?->getAuthIdentifier()));
+
+        RateLimiter::for('email-change', fn (Request $request) => Limit::perMinute(5)
+            ->by((string) $request->user()?->getAuthIdentifier()));
+        RateLimiter::for('email-delivery', fn (Request $request) => Limit::perMinute(1)
             ->by((string) $request->user()?->getAuthIdentifier()));
 
         RateLimiter::for('password-change', fn (Request $request) => Limit::perMinute(5)

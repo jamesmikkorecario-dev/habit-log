@@ -6,7 +6,6 @@ use App\Models\User;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 
 require dirname(__DIR__, 2).'/vendor/autoload.php';
@@ -22,7 +21,7 @@ DB::statement('SET SESSION innodb_lock_wait_timeout = 5');
 $user = User::findOrFail((int) $argv[1]);
 $input = ['current_password' => 'password', 'password' => 'Competing-password-789!', 'password_confirmation' => 'Competing-password-789!'];
 if ($argv[2] === 'reset') {
-    $input['token'] = Password::createToken($user);
+    $input['token'] = $argv[3];
 }
 Auth::login($user);
 request()->setLaravelSession(session()->driver());

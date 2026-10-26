@@ -153,12 +153,20 @@ test('password settings supports mobile keyboard submission and prevents duplica
     const gate = new Promise(resolve => { release = resolve; });
     let requests = 0;
     await page.route('**/user/password', async route => { requests++; await gate; await route.continue(); });
+    // Inspect before native navigation starts. Reading the DOM after interception
+    // can wait for that navigation while the route waits for this assertion.
+    let submissionState;
+    await page.exposeFunction('observePasswordSubmission', state => { submissionState = state; });
+    await page.evaluate(() => {
+        const form = document.querySelector('form[aria-label="Change password"]');
+        form.addEventListener('submit', () => queueMicrotask(() => window.observePasswordSubmission({
+            busy: form.getAttribute('aria-busy'),
+            disabled: form.querySelector('button[type=submit]').disabled,
+        })), { once: true });
+    });
     try {
         await page.keyboard.press('Enter');
-        await expect.poll(() => page.evaluate(() => {
-            const form = document.querySelector('form[aria-label="Change password"]');
-            return form.getAttribute('aria-busy') === 'true' && form.querySelector('button[type=submit]').disabled;
-        })).toBe(true);
+        await expect.poll(() => submissionState).toEqual({ busy: 'true', disabled: true });
         await expect.poll(() => requests).toBe(1);
     } finally { release(); }
     await expect(page.getByRole('status').filter({ hasText: 'Password changed.' })).toBeFocused();

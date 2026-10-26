@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [AuthenticateSession::class, WebSecurity::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontFlash(['current_password', 'password', 'password_confirmation', 'token', 'signature']);
         $exceptions->report(function (QueryException $exception): void {
             // QueryException embeds SQL, bindings and sometimes private values in
             // the driver message. Report useful metadata without that exception.
