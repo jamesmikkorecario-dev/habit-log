@@ -45,5 +45,5 @@
             <p class="mt-1 text-zinc-400" x-text="preview?.counts"></p>
         </div>
     @endif
-    <p class="mt-3 text-xs leading-relaxed text-zinc-400">January → December. Scroll the calendar horizontally when needed, or use the accessible day list below.</p>
+    <p class="mt-3 text-xs leading-relaxed text-zinc-400">January → December. Scroll the calendar horizontally when needed, or use {{ $minimal ? 'Browse dates' : 'the accessible day list' }} below.</p>
 </div>

@@ -39,7 +39,7 @@ class EmptyPresentationTest extends TrackingTestCase
         $this->assertStringContainsString('0 days', $this->card($page, 'Current streak'));
         $this->assertStringContainsString('0 days', $this->card($page, 'Longest streak'));
         $page->assertSee('data-date="2026-01-01"', false)->assertSee('data-date="2026-12-31"', false)
-            ->assertSee('How these numbers work')->assertSee('Accessible day list');
+            ->assertSee('How these numbers work')->assertSee('Browse dates');
     }
 
     public function test_first_check_in_guidance_is_period_aware_and_never_replaces_a_valid_zero(): void

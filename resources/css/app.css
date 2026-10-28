@@ -210,9 +210,6 @@ button.heat-cell:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
     background: transparent;
     border: 1px solid #666666;
 }
-.dashboard-activity-history .calendar-state-key[open] {
-    width: 100%;
-}
 @media (forced-colors: active) {
     .dashboard-activity-history .heat-cell[data-state="na"],
     .dashboard-activity-history .heat-cell[data-state="unavailable"] {
