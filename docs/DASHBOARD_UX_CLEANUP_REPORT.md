@@ -36,6 +36,25 @@ The complete browser suite was rerun after the final focus fix: `HABIT_LOG_E2E=1
 
 Screenshots and Chromium accessibility-tree snapshots are in `storage/app/dashboard-cleanup/`: before/after empty and populated dashboards, calculation and status dialogs, and selected leap-day details at **1440px and 390px**. Keyboard coverage includes Tab/Shift+Tab containment, Enter/Space, calendar arrows/Home/End, Escape, focus restoration, native date selection, month/year navigation and daily-overview navigation. Axe checks cover WCAG 2 A/AA and 2.1 AA. Existing geometry checks include ordinary, leap and 54-week years, responsive widths, horizontal scrolling and symbol-free cells.
 
+## PR #12 CI focus correction
+
+The [initial CI run](https://github.com/jamesmikkorecario-dev/habit-log/actions/runs/40701344246) passed 77 browser scenarios and failed the date-browser heading-focus assertion. Its log resolved the heading to **`2024-01-13 · N/A`** on all 24 assertion polls. Playwright's `Received: inactive` described keyboard focus, not the activity status. This is an application focus race, not a fixture or scoring error.
+
+The fixture starts the habit on January 8, 2024 and records January 13 as `not_applicable`; January 14 is deliberately unlogged and January 15 has an unavailable synthetic measurement. Local and CI runs use the same guarded `browser-setup.php`, fresh `habit_log_test` MySQL database, UTC fixture owner, and deterministic history. `HabitScore` preserves N/A before numeric validation, and analytics distinguishes it from dates outside the active range. No data or status expectation needs changing.
+
+Using CI's pinned Linux Chromium reproduced the original failure in all three attempts. A temporary trace showed both heading-focus calls occurred while the details panel had `display: none`. Alpine's `x-show` schedules revealing the panel on an animation frame; the existing `$nextTick` focus callbacks can run before that frame. Earlier local evidence used installed Windows Chrome, whose timing had masked the race.
+
+The owner Dashboard now binds the native `hidden` attribute synchronously, so its existing next-tick focus callbacks run after visibility updates. Other heatmap views retain their existing presentation. The browser regression retains exact status, score, link and focus assertions, adds reopening the same N/A date, and verifies the heading is visible at every focus attempt. No arbitrary wait, broadened status, retry, fixture change, migration, scoring change, or authorization change is introduced. The implementation, regression and this report are the only changed files.
+
+Verification of the final fix:
+
+- `PLAYWRIGHT_BROWSERS_PATH=/tmp/habit-dashboard-browsers HABIT_LOG_E2E=1 npm run test:e2e -- tests/Browser/dashboard-cleanup.spec.js`: **3 passed**, 21.1 seconds.
+- `PLAYWRIGHT_BROWSERS_PATH=/tmp/habit-dashboard-browsers HABIT_LOG_E2E=1 npm run test:e2e`: **78 passed**, 7.2 minutes, no failures or retries, using the pinned Linux Chromium. This includes date-browser and calendar keyboard focus, Escape restoration, leap/month/year navigation, all special states, touch navigation, shared views and axe scans.
+- `php artisan test tests/Feature/Analytics --compact`: **27 passed / 1,392 assertions**, 9.26 seconds, including date boundaries, authorization, scoring and snapshot integrity.
+- `vendor/bin/pint --test`, `npm run build`, `node --check tests/Browser/dashboard-cleanup.spec.js`, and `git diff --check`: passed.
+
+Reviewed against `DESIGN_VERIFICATION.md`: the synchronous visibility change is scoped to the owner Dashboard, preserves the native keyboard interaction and existing accessible details, and leaves data integrity and server-side privacy enforcement unchanged. Generated evidence remains ignored under `storage/app/`. Hosted CI for the targeted follow-up is tracked on the existing PR #12.
+
 ## Remaining concerns
 
 Screen-reader semantics are checked through Chromium's accessibility tree, accessible names, live announcements and keyboard behavior. Manual operation with NVDA, VoiceOver or another screen reader is not available in this environment and remains unverified. Browser evidence uses Chromium with desktop/mobile viewport and touch emulation; physical devices and other engines remain unverified. These checks do not change or expand production-release approval.

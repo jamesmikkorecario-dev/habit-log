@@ -69,6 +69,18 @@ test('compact dashboard dialogs retain calculations, counts, status meanings and
 });
 
 test('date browser reaches every kind of day and preserves details, leap dates, year navigation and daily links', async ({ page }) => {
+    await page.addInitScript(() => {
+        // A focus attempt on an x-show panel awaiting its animation frame is
+        // silently ignored by the browser, even though it becomes visible later.
+        window.__detailFocusVisibility = [];
+        const focus = HTMLElement.prototype.focus;
+        HTMLElement.prototype.focus = function (...args) {
+            if (this.getAttribute('x-ref') === 'detailHeading') {
+                window.__detailFocusVisibility.push(this.checkVisibility());
+            }
+            return focus.apply(this, args);
+        };
+    });
     await login(page);
     await page.setViewportSize({ width: 390, height: 1000 });
     const input = page.getByLabel('Date to view', { exact: true });
@@ -76,6 +88,7 @@ test('date browser reaches every kind of day and preserves details, leap dates, 
         ['2024-01-01', 'No eligible data', 'No performance score'],
         ['2024-01-08', 'Recorded performance', '0.0% performance'],
         ['2024-01-13', 'N/A', 'No performance score'],
+        ['2024-01-13', 'N/A', 'No performance score'], // Reopening the same date also restores focus.
         ['2024-01-14', 'Not logged', '0.0% performance'],
         ['2024-01-15', 'Data unavailable', 'No performance score'],
         ['2024-02-29', 'Fully successful', '100.0% performance'],
@@ -86,6 +99,9 @@ test('date browser reaches every kind of day and preserves details, leap dates, 
         await action(page, () => page.keyboard.press('Enter'));
         const heading = page.getByRole('heading', { name: `${date} · ${status}`, exact: true });
         await expect(heading).toBeFocused();
+        const focusVisibility = await page.evaluate(() => window.__detailFocusVisibility.splice(0));
+        expect(focusVisibility.length).toBeGreaterThan(0);
+        expect(focusVisibility.every(Boolean)).toBe(true);
         await expect(heading.locator('..')).toContainText(performance);
         if (['No eligible data', 'Data unavailable'].includes(status)) {
             await expect(page.getByRole('link', { name: 'Open daily overview', exact: true })).toHaveCount(0);

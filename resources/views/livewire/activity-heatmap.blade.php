@@ -96,7 +96,8 @@
             <p class="sr-only" role="status" aria-atomic="true">Date to view: {{ $browseDate }}. Select Show date to open details.</p>
         </form>
     @endif
-    <div x-show="detailOpen" x-cloak @keydown.escape.prevent.stop="closeDetail()" class="rounded-lg border border-emerald-800 bg-zinc-900 p-4" aria-live="polite" aria-atomic="true">
+    {{-- Dashboard focus runs on $nextTick; reveal synchronously rather than x-show's later animation frame. --}}
+    <div @if($minimalCalendar) :hidden="!detailOpen" @else x-show="detailOpen" @endif x-cloak @keydown.escape.prevent.stop="closeDetail()" class="rounded-lg border border-emerald-800 bg-zinc-900 p-4" aria-live="polite" aria-atomic="true">
         @if($selected)
             <h3 class="font-semibold" tabindex="-1" x-ref="detailHeading" @if($minimalCalendar) x-effect="if (detailOpen) $nextTick(() => $el.focus())" @endif>{{ $selected['date'] }} · {{ $selected['label'] }}</h3>
             <p class="mt-2">{{ $selected['score'] === null ? 'No performance score' : number_format($selected['score'] * 100, 1).'% performance' }}{{ $selected['success'] ? ' · Full success' : '' }}</p>
