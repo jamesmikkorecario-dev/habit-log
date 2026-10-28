@@ -1,31 +1,36 @@
+@php($minimalCalendar = $habitId === null && $subjectId === null)
 <section class="min-w-0 space-y-6" aria-label="{{ $habitId ? 'Habit activity' : 'Overall profile activity' }}"
-    x-data="{ detailOpen: false, origin: null, closeDetail() { this.detailOpen = false; this.$nextTick(() => this.$root.querySelector(`[data-focus-key='${this.origin}']`)?.focus()); } }">
+    x-data="{ detailOpen: false, origin: null, closeDetail() { this.detailOpen = false; this.$nextTick(() => this.$root.querySelector(`[data-focus-key='${this.origin}']`)?.focus()); } }"
+    @if($minimalCalendar) x-effect="if (!$wire.selectedDate) detailOpen = false" @endif
+    @dashboard-date-selected="origin = 'browse-date'; detailOpen = true; $nextTick(() => $refs.detailHeading?.focus())">
     <section aria-label="Progress overview" class="space-y-4">
         <header class="flex flex-wrap items-end justify-between gap-2">
-            <div><p class="font-mono text-xs uppercase tracking-widest text-emerald-300">The bigger picture</p><h2 class="mt-2 text-xl font-semibold">{{ $habitId ? 'Habit progress' : 'Progress overview' }}</h2></div>
+            <div><p class="font-mono text-xs uppercase tracking-widest text-emerald-300">The bigger picture</p><div class="mt-2 flex items-center gap-2"><h2 class="text-xl font-semibold">{{ $habitId ? 'Habit progress' : 'Progress overview' }}</h2>
+                @if($minimalCalendar)
+                    <flux:modal.trigger name="dashboard-numbers">
+                        <flux:button icon="information-circle" variant="ghost" class="min-h-11 min-w-11" aria-label="How these numbers work" title="How these numbers work" />
+                    </flux:modal.trigger>
+                @endif
+            </div></div>
             <p class="text-xs text-zinc-400">As of {{ $report['today'] }} · {{ $report['timezone'] }}</p>
         </header>
         <x-activity-summary :report="$report" :empty-messages="$emptyMessages" :new-account="$newAccount" :shared="$subjectId !== null" />
+        @if($minimalCalendar)
+            <flux:modal name="dashboard-numbers" class="w-[calc(100%-2rem)] min-w-0! max-w-xl [&_[data-flux-modal-close]_button]:min-h-11 [&_[data-flux-modal-close]_button]:min-w-11"
+                x-on:keydown.tab.prevent="$event.shiftKey ? $focus.within(Array.from($el.querySelectorAll('button'))).wrap().previous() : $focus.within(Array.from($el.querySelectorAll('button'))).wrap().next()"
+                x-init="$el.querySelector('dialog').setAttribute('aria-labelledby', 'dashboard-numbers-title')">
+                <h2 id="dashboard-numbers-title" class="mb-4 pr-6 text-lg font-semibold">How these numbers work</h2>
+                <div class="text-sm text-zinc-300"><x-activity-explanation :report="$report" :habit-id="$habitId" :subject-id="$subjectId" /></div>
+                <div class="mt-5 flex justify-end"><flux:modal.close><flux:button autofocus class="min-h-11">Close explanation</flux:button></flux:modal.close></div>
+            </flux:modal>
+        @else
         <details wire:ignore.self class="rounded-lg border border-zinc-800 px-4 py-1 text-sm text-zinc-400">
             <summary class="cursor-pointer rounded py-3 font-medium text-zinc-300 focus-visible:outline-2 focus-visible:outline-emerald-300">How these numbers work</summary>
-            <div class="space-y-3 pb-4 leading-relaxed">
-                <p>Consistency averages performance, including partial progress. The 30-day window is {{ $report['recent_start'] }}–{{ $report['today'] }}; yearly consistency uses the selected calendar year through today. Streaks use all history and count only full success. N/A and inactive gaps preserve a run without adding days. Unlogged past days count as zero; today stays pending until recorded.</p>
-                <p>{{ $subjectId === null ? 'Your management view includes private habits. Shared profiles follow your visibility settings.' : 'Only habits you may view are included.' }}</p>
-                @if($report['lifecycle'])<p class="text-zinc-300">{{ $report['lifecycle'] }}</p>@endif
-                @if(!$habitId)<p>{{ $report['habit_count'] }} habits included. Archived history is preserved; trashed habits are excluded until restored.</p>@endif
-                <div class="grid gap-3 sm:grid-cols-2">
-                    @foreach(['recent' => 'Last 30 days', 'yearly' => $report['year'].' calendar year'] as $key => $title)
-                        <div><h3 class="font-medium text-zinc-300">{{ $title }}</h3>
-                            <p>{{ $report[$key]['days'] }} scored days · {{ $report[$key]['na'] }} N/A {{ $habitId ? 'days' : 'habit-days' }} · {{ $report[$key]['unlogged'] }} unlogged {{ $habitId ? 'days' : 'habit-days' }}</p>
-                            <p>{{ $report[$key]['pending'] }} pending · {{ $report[$key]['unavailable'] }} unavailable</p>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
+            <div class="pb-4"><x-activity-explanation :report="$report" :habit-id="$habitId" :subject-id="$subjectId" /></div>
         </details>
+        @endif
     </section>
 
-    @php($minimalCalendar = $habitId === null && $subjectId === null)
     <section aria-label="Activity history" @class(['min-w-0 space-y-5 rounded-xl border border-zinc-800 bg-zinc-900/20 p-4 sm:p-5', 'dashboard-activity-history' => $minimalCalendar])>
         <header class="flex flex-wrap items-start justify-between gap-4">
             <div><h2 class="text-xl font-semibold">Activity history</h2><p class="mt-2 text-sm text-zinc-400">{{ $report['year'] }} · Every day adds to the picture.</p></div>
@@ -45,18 +50,21 @@
         @if($minimalCalendar)
             <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-zinc-800 pt-4 text-xs text-zinc-400" aria-label="Performance legend">
                 <div class="flex items-center gap-2"><span>Performance</span><span>Less</span>@foreach(['0', '1', '2', '3', '4'] as $band)<span class="heat-cell heat-band-{{ $band }}" aria-hidden="true"></span>@endforeach<span>More</span></div>
-                <details wire:ignore.self class="calendar-state-key w-full sm:w-auto">
-                    <summary class="min-h-11 cursor-pointer content-center rounded text-zinc-300 focus-visible:outline-2 focus-visible:outline-emerald-300">Calendar key</summary>
-                    <div class="space-y-3 pb-2 pt-2">
-                        <p>Performance: 0%, above 0–25%, above 25–50%, above 50–75%, above 75–100%. Zero is recorded; not logged means a missing entry.</p>
-                        <ul class="flex flex-wrap gap-x-5 gap-y-3">
-                            @foreach(['unlogged' => 'Not logged', 'pending' => 'Pending', 'na' => 'N/A', 'unavailable' => 'Unavailable', 'inactive' => 'Inactive / future'] as $state => $meaning)
-                                <li class="flex items-center gap-2"><span class="heat-cell heat-band-neutral" data-state="{{ $state }}" aria-hidden="true"></span>{{ $meaning }}</li>
-                            @endforeach
-                        </ul>
-                        <p>N/A, unavailable, inactive and future dates have no score. Pending habits keep today's score provisional. Hover or focus a date for a preview; select it for details.</p>
-                    </div>
-                </details>
+                <div>
+                <flux:modal.trigger name="dashboard-status-key"><flux:button variant="ghost" class="min-h-11">Status key</flux:button></flux:modal.trigger>
+                <flux:modal name="dashboard-status-key" class="w-[calc(100%-2rem)] min-w-0! max-w-lg [&_[data-flux-modal-close]_button]:min-h-11 [&_[data-flux-modal-close]_button]:min-w-11"
+                    x-on:keydown.tab.prevent="$event.shiftKey ? $focus.within(Array.from($el.querySelectorAll('button'))).wrap().previous() : $focus.within(Array.from($el.querySelectorAll('button'))).wrap().next()"
+                    x-init="$el.querySelector('dialog').setAttribute('aria-labelledby', 'dashboard-status-title')">
+                    <h2 id="dashboard-status-title" class="pr-6 text-lg font-semibold">Status key</h2>
+                    <p class="mt-3 text-sm leading-relaxed text-zinc-300">Performance: 0%, above 0–25%, above 25–50%, above 50–75%, above 75–100%. Zero is recorded; not logged means a missing entry.</p>
+                    <dl class="mt-4 space-y-4 text-sm text-zinc-300">
+                        @foreach(['unlogged' => ['Not logged', 'A missing past entry contributes zero performance.'], 'pending' => ['Pending', "Today is awaiting a check-in. Any recorded score stays provisional."], 'na' => ['N/A', 'Recorded as not applicable; excluded from performance and streak days.'], 'unavailable' => ['Unavailable', 'Activity data cannot be scored; excluded from performance.'], 'inactive' => ['Inactive / Future', 'Outside active dates or after today; neutral, with no score.']] as $state => [$meaning, $description])
+                            <div><dt class="flex items-center gap-2 font-medium text-zinc-100"><span class="heat-cell heat-band-neutral shrink-0" data-state="{{ $state }}" aria-hidden="true"></span>{{ $meaning }}</dt><dd class="mt-1 pl-6 leading-relaxed">{{ $description }}</dd></div>
+                        @endforeach
+                    </dl>
+                    <div class="mt-5 flex justify-end"><flux:modal.close><flux:button autofocus class="min-h-11">Close status key</flux:button></flux:modal.close></div>
+                </flux:modal>
+                </div>
             </div>
         @else
         <div class="grid gap-5 border-t border-zinc-800 pt-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]" aria-label="Performance legend">
@@ -76,6 +84,18 @@
             </div>
         </div>
         @endif
+    @if($minimalCalendar)
+        <form wire:submit="browseToDate" aria-label="Browse dates" class="space-y-3 border-t border-zinc-800 pt-4">
+            <div><h3 class="text-sm font-medium">Browse dates</h3><p id="browse-date-help" class="mt-1 text-xs text-zinc-400">Choose any date, including unlogged and inactive days. Use the year controls above or enter a date directly.</p></div>
+            <div class="flex flex-wrap items-end gap-2">
+                <flux:button wire:click="moveBrowseMonth(-1)" icon="chevron-left" class="min-h-11 min-w-11" aria-label="Previous month" title="Previous month" :disabled="$browseDate <= '1000-01-01'" />
+                <div class="min-w-0 flex-1 sm:max-w-56"><flux:input type="date" wire:model="browseDate" label="Date to view" data-focus-key="browse-date" aria-describedby="browse-date-help" min="1000-01-01" :max="substr($report['today'], 0, 4).'-12-31'" class:input="min-h-11" /></div>
+                <flux:button wire:click="moveBrowseMonth(1)" icon="chevron-right" class="min-h-11 min-w-11" aria-label="Next month" title="Next month" :disabled="$browseDate >= substr($report['today'], 0, 4).'-12-31'" />
+                <flux:button type="submit" class="min-h-11 w-full sm:w-auto">Show date</flux:button>
+            </div>
+            <p class="sr-only" role="status" aria-atomic="true">Date to view: {{ $browseDate }}. Select Show date to open details.</p>
+        </form>
+    @endif
     <div x-show="detailOpen" x-cloak @keydown.escape.prevent.stop="closeDetail()" class="rounded-lg border border-emerald-800 bg-zinc-900 p-4" aria-live="polite" aria-atomic="true">
         @if($selected)
             <h3 class="font-semibold" tabindex="-1" x-ref="detailHeading" @if($minimalCalendar) x-effect="if (detailOpen) $nextTick(() => $el.focus())" @endif>{{ $selected['date'] }} · {{ $selected['label'] }}</h3>
@@ -92,6 +112,7 @@
             </div>
         @else<p>Loading date details…</p>@endif
     </div>
+    @unless($minimalCalendar)
     <details wire:ignore.self class="rounded-lg border border-zinc-800 p-3">
         <summary class="min-h-11 cursor-pointer py-3 font-medium focus-visible:outline-2 focus-visible:outline-emerald-300">Accessible day list</summary>
         <ul class="mt-3 divide-y divide-zinc-800">
@@ -108,5 +129,6 @@
             <flux:button wire:click="moveList(1)" :disabled="$listPage >= ceil(count($report['cells']) / 20)" class="min-h-11">Next days</flux:button>
         </div>
     </details>
+    @endunless
     </section>
 </section>

@@ -25,7 +25,7 @@ class CalendarPresentationTest extends TrackingTestCase
         $entries = $habit->entries()->orderBy('id')->get()->toArray();
 
         $page = Livewire::actingAs($habit->user)->test(ActivityHeatmap::class)
-            ->assertSee('Calendar key')->assertSee('activity-calendar-minimal', false)
+            ->assertSee('Status key')->assertSee('Browse dates')->assertDontSee('Accessible day list')->assertSee('activity-calendar-minimal', false)
             ->assertDontSee('PRIVATE-CALENDAR-NOTE')->assertDontSee('PRIVATE-CALENDAR-REASON');
         $document = new \DOMDocument;
         // libxml's HTML4 parser does not understand Alpine's @/: shorthand.

@@ -170,10 +170,11 @@ test('dashboard previews distinguish scores and special states without exposing 
     const content = await page.content();
     expect(content).not.toContain('PRIVATE-HEATMAP-NOTE');
     expect(content).not.toContain('PRIVATE-HEATMAP-REASON');
-    await page.getByText('Calendar key', { exact: true }).click();
-    await expect(page.locator('.calendar-state-key')).toHaveAttribute('open', '');
-    await expect(page.locator('.calendar-state-key')).toContainText('Zero is recorded; not logged means a missing entry.');
-    await page.locator('section[aria-label="Activity history"]').screenshot({ path: `${directory}/calendar-key-1440.png` });
+    await page.getByRole('button', { name: 'Status key', exact: true }).click();
+    await expect(page.getByRole('dialog', { name: 'Status key', exact: true })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Status key', exact: true })).toContainText('Zero is recorded; not logged means a missing entry.');
+    await page.screenshot({ path: `${directory}/status-key-1440.png` });
+    await page.keyboard.press('Escape');
     await page.emulateMedia({ forcedColors: 'active' });
     const patterns = await page.locator('[data-date="2024-01-13"], [data-date="2024-01-15"]').evaluateAll(cells => cells.map(cell => getComputedStyle(cell).backgroundImage));
     expect(patterns.every(pattern => pattern.includes('gradient'))).toBe(true);
@@ -211,7 +212,7 @@ test('dashboard preview explains a provisional score while another habit is pend
     await page.screenshot({ path: `${directory}/preview-390.png` });
 });
 
-test('dashboard focus previews, details, year boundaries and day list remain accessible', async ({ page }) => {
+test('dashboard focus previews, details, year boundaries and date browser remain accessible', async ({ page }) => {
     await signIn(page);
     await page.goto('/dashboard?year=2024');
     const tooltip = page.getByRole('tooltip');
@@ -267,13 +268,12 @@ test('dashboard focus previews, details, year boundaries and day list remain acc
     await action(page, () => page.getByRole('button', { name: 'Go to year', exact: true }).click());
     await expect(tooltip).toBeHidden();
     await expect.poll(() => page.locator('[data-calendar-scroll]').evaluate(el => el.scrollLeft)).toBe(0);
-    await page.getByText('Accessible day list', { exact: true }).click();
-    await action(page, () => page.getByRole('button', { name: 'Next days', exact: true }).click());
-    await expect(page.getByText('Page 2 of 19')).toBeVisible();
-    const row = page.locator('[data-focus-key^="list-"]').first();
-    await action(page, () => row.click());
+    const date = page.getByLabel('Date to view', { exact: true });
+    await action(page, () => page.getByRole('button', { name: 'Next month', exact: true }).click());
+    await expect(date).toHaveValue('2024-02-01');
+    await action(page, () => page.getByRole('button', { name: 'Show date', exact: true }).click());
     await page.getByRole('button', { name: 'Close details' }).click();
-    await expect(row).toBeFocused();
+    await expect(date).toBeFocused();
 });
 
 test('dashboard calendar supports touch details and horizontal scrolling at 390px', async ({ browser }) => {

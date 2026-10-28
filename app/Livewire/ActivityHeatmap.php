@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\Analytics\ActivityAnalytics;
 use App\Services\SocialAccess;
 use App\Services\TrackingDate;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
@@ -54,6 +55,8 @@ class ActivityHeatmap extends Component
 
     public $selectedDate = '';
 
+    public $browseDate = '';
+
     public $listPage = 1;
 
     public function mount(?int $habitId = null, ?int $subjectId = null): void
@@ -64,6 +67,7 @@ class ActivityHeatmap extends Component
         $this->year = $this->year === '' ? (int) substr($this->owner()->localToday(), 0, 4) : $this->year;
         $this->validateYear();
         $this->yearInput = $this->year;
+        $this->browseDate = $this->year.'-01-01';
     }
 
     private function owner()
@@ -111,6 +115,8 @@ class ActivityHeatmap extends Component
         $this->year = $direction === 0 ? (int) substr($report['today'], 0, 4) : max(1000, min((int) substr($report['today'], 0, 4), (int) $this->year + $direction));
         $this->yearInput = $this->year;
         $this->reset('selectedDate', 'listPage');
+        $this->browseDate = $this->year.'-01-01';
+        $this->resetValidation('browseDate');
         unset($this->activity);
     }
 
@@ -119,6 +125,8 @@ class ActivityHeatmap extends Component
         $this->validateYear();
         $this->yearInput = $this->year;
         $this->reset('selectedDate', 'listPage');
+        $this->browseDate = $this->year.'-01-01';
+        $this->resetValidation('browseDate');
         unset($this->activity);
     }
 
@@ -141,6 +149,33 @@ class ActivityHeatmap extends Component
         app(TrackingDate::class)->validate($date);
         abort_unless(substr($date, 0, 4) === (string) $this->activity['year'], 422);
         $this->selectedDate = $date;
+        $this->browseDate = $date;
+    }
+
+    private function validateBrowseDate(): void
+    {
+        $owner = $this->owner();
+        abort_unless($this->habitId === null && $this->subjectId === null, 404);
+        $this->validate(['browseDate' => ['required', 'string', 'date_format:Y-m-d', 'after_or_equal:1000-01-01', 'before_or_equal:'.substr($owner->localToday(), 0, 4).'-12-31']], attributes: ['browseDate' => 'date']);
+    }
+
+    public function moveBrowseMonth(int $direction): void
+    {
+        abort_unless(in_array($direction, [-1, 1], true), 422);
+        $this->validateBrowseDate();
+        $date = CarbonImmutable::createFromFormat('!Y-m-d', $this->browseDate)->addMonthsNoOverflow($direction)->toDateString();
+        $maximum = substr($this->owner()->localToday(), 0, 4).'-12-31';
+        $this->browseDate = max('1000-01-01', min($maximum, $date));
+    }
+
+    public function browseToDate(): void
+    {
+        $this->validateBrowseDate();
+        $date = $this->browseDate;
+        $this->year = (int) substr($date, 0, 4);
+        $this->updatedYear();
+        $this->selectDay($date);
+        $this->dispatch('dashboard-date-selected');
     }
 
     public function moveList(int $direction): void

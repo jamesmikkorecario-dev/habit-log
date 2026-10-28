@@ -66,13 +66,13 @@ test('dashboard empty onboarding and complete calendar geometry', async ({ page 
     await expect(page.locator('article[aria-label="30-day consistency"]')).toContainText('Create your first habit to get started.');
     await expect(page.locator('article[aria-label="Current streak"]')).toContainText('0 days');
     await expect(page.locator('[data-activity-context]')).toHaveText('Create your first habit to get started.');
-    for (const label of ['How these numbers work', 'Accessible day list']) {
-        const summary = page.locator('summary').filter({ hasText: label });
-        await summary.focus();
+    for (const label of ['How these numbers work', 'Status key']) {
+        const trigger = page.getByRole('button', { name: label, exact: true });
+        await trigger.focus();
         await page.keyboard.press('Enter');
-        await expect(summary.locator('..')).toHaveAttribute('open', '');
-        await page.keyboard.press('Enter');
-        await expect(summary.locator('..')).not.toHaveAttribute('open', '');
+        await expect(page.getByRole('dialog', { name: label, exact: true })).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(trigger).toBeFocused();
     }
     const calendar = page.locator('[data-calendar-scroll]');
     await expect.poll(() => calendar.evaluate(el => el.scrollLeft)).toBe(0);
@@ -175,11 +175,10 @@ test('dashboard populated daily habits, leap-year alignment and accessible navig
     await expect(page.getByLabel('Year', { exact: true })).toHaveValue('2024');
     await action(page, () => page.getByRole('button', { name: 'Current year', exact: true }).click());
     await expect(page.getByRole('button', { name: 'Next year', exact: true })).toBeDisabled();
-    await page.getByText('How these numbers work', { exact: true }).click();
-    await page.getByText('Accessible day list', { exact: true }).click();
-    await action(page, () => page.locator('[data-focus-key^="list-"]').first().click());
+    await page.getByLabel('Date to view', { exact: true }).fill(today);
+    await action(page, () => page.getByRole('button', { name: 'Show date', exact: true }).click());
     await page.getByRole('button', { name: 'Close details', exact: true }).click();
-    await expect(page.locator('[data-focus-key^="list-"]').first()).toBeFocused();
+    await expect(page.getByLabel('Date to view', { exact: true })).toBeFocused();
     const scan = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa']).analyze();
     expect(scan.violations).toEqual([]);
     await page.getByRole('link', { name: 'Edit check-in for Read 10 pages' }).click();
