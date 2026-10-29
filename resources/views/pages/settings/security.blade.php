@@ -46,5 +46,6 @@
 
         @include('pages.settings.email-change')
         @include('pages.settings.sessions')
+        @include('pages.settings.account-deletion')
     </div>
 </x-layouts::app>

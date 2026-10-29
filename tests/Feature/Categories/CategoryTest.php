@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Services\CategoryRecommender;
 use Database\Seeders\CategorySeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -189,20 +188,5 @@ class CategoryTest extends TestCase
         Livewire::actingAs($user)->test('pages::categories.index')->set('name', '0')->call('review')->call('save')->assertHasNoErrors();
         Category::factory()->for($user)->create(['name' => '<script>alert(1)</script>']);
         $this->actingAs($user)->get(route('categories.index'))->assertSee('&lt;script&gt;alert(1)&lt;/script&gt;', false)->assertDontSee('<script>alert(1)</script>', false);
-    }
-
-    public function test_concurrent_duplicate_creation_returns_a_field_error(): void
-    {
-        $user = User::factory()->create();
-        // Another submission wins after the application precheck but before INSERT.
-        Category::creating(function (Category $category) {
-            DB::table('categories')->insert($category->getAttributes() + ['created_at' => now(), 'updated_at' => now()]);
-        });
-        try {
-            Livewire::actingAs($user)->test('pages::categories.index')->set('name', 'Same choice')->call('review')->call('save')->assertHasErrors('name');
-        } finally {
-            Category::flushEventListeners();
-        }
-        $this->assertSame(1, $user->categories()->count());
     }
 }

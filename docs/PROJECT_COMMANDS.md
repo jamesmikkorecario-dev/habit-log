@@ -172,3 +172,22 @@ sh tests/Containers/smoke.sh habit-log:account-password-check
 ```
 
 `E2E_NODE` above selects the existing Windows Chrome setup from WSL; omit it in CI with installed Playwright Chromium. The production image check is disposable packaging verification, not deployment. No migration is required for password changes.
+
+## Account management Phase 4 verification
+
+Use synthetic data in `habit_log_test` and run sequentially. The browser harness creates and deletes dedicated synthetic accounts; it never targets a real account. `PLAYWRIGHT_BROWSERS_PATH` is optional and selects an already installed pinned Chromium (the local review used `/tmp/habit-dashboard-browsers`).
+
+```bash
+php artisan test tests/Feature/Auth/AccountDeletionTest.php tests/Feature/Auth/AccountDeletionConcurrencyTest.php --compact
+HABIT_LOG_E2E=1 npm run test:e2e -- tests/Browser/account-deletion.spec.js
+php artisan test --compact
+HABIT_LOG_E2E=1 npm run test:e2e
+vendor/bin/pint --test
+npm run build
+composer audit --locked
+npm audit
+docker build --target production -t habit-log:account-deletion-check .
+sh tests/Containers/smoke.sh habit-log:account-deletion-check
+```
+
+No migration is required. Browser screenshots at 1440px/390px and synthetic fixture credentials/tokens remain ignored in `storage/app/account-deletion/`; never upload those fixtures or logs. The disposable image check does not deploy a service or establish production backup/restore safety. See [the implementation report](ACCOUNT_DELETION_REPORT.md) for results and prerequisites.

@@ -1,11 +1,11 @@
 <?php
 
 use App\Livewire\Concerns\RequiresSameUser;
+use App\Actions\Categories\CreateCategory;
 use App\Models\Category;
 use App\Services\CategoryRecommender;
 use App\Support\NormalizedName;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
@@ -98,8 +98,7 @@ new #[Title('Categories')] class extends Component
             return;
         }
         try {
-            $category = auth()->user()->categories()->make($data + ['slug' => 'custom-'.Str::uuid()]);
-            $category->forceFill(['is_system' => false])->save();
+            $category = app(CreateCategory::class)->handle(auth()->user(), $data);
         } catch (UniqueConstraintViolationException $exception) {
             if (! auth()->user()->categories()->where('normalized_name', $data['normalized_name'])->exists()) {
                 throw $exception;

@@ -1,6 +1,10 @@
 # Account management implementation plan
 
-Status: Phases 1 (password) and 2 (verified email) are implemented; Phase 3 session management is implemented and locally verified. Account deletion and Settings draft protection remain proposed. Phase 2 evidence is recorded in [the email-change report](ACCOUNT_EMAIL_CHANGE_REPORT.md) and [ADR-0009](adr/ADR-0009-VERIFIED-EMAIL-CHANGE.md). Reviewed on 2026-10-25 against synchronized `dev` at `e124ee14896706e31587b03b227a1b8029abadbe` (also the remote `dev` and `main` head at review time). The original plan below describes the broader follow-up. Current implementation evidence is recorded in [the Phase 1 report](ACCOUNT_PASSWORD_CHANGE_REPORT.md).
+Status: Phases 1 (password) and 2 (verified email) are implemented; Phase 3 session management is implemented and locally verified. Phase 4 account deletion is implemented and locally verified; the report records the dependency remediation and outstanding backup/production prerequisites; Settings draft protection remains proposed. Phase 2 evidence is recorded in [the email-change report](ACCOUNT_EMAIL_CHANGE_REPORT.md) and [ADR-0009](adr/ADR-0009-VERIFIED-EMAIL-CHANGE.md). Reviewed on 2026-10-25 against synchronized `dev` at `e124ee14896706e31587b03b227a1b8029abadbe` (also the remote `dev` and `main` head at review time). The original plan below describes the broader follow-up. Current implementation evidence is recorded in [the Phase 1 report](ACCOUNT_PASSWORD_CHANGE_REPORT.md).
+
+## Phase 4 accepted scope
+
+The Phase 4 request authorizes immediate permanent account deletion in **Settings → Security**, including history and Trash, password confirmation and explicit acknowledgment. The user approved the maximum 30-day encrypted/access-restricted backup policy with automatic expiry purge, external deletion records and mandatory reconciliation before live restore; unavailable reconciliation blocks live restoration. These operational protections are prerequisites, not claimed implementations. See [ADR-0011](adr/ADR-0011-ACCOUNT-DELETION.md) and [the implementation report](ACCOUNT_DELETION_REPORT.md). Settings draft protection remains deferred. The original proposal below is retained as planning history.
 
 ## Phase 3 accepted scope
 
