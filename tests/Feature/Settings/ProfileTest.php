@@ -30,6 +30,20 @@ class ProfileTest extends TestCase
         $this->assertSame('Asia/Manila', $user->fresh()->timezone);
     }
 
+    public function test_success_emits_only_normalized_saved_profile_values_for_the_draft_baseline(): void
+    {
+        $user = User::factory()->create(['username' => 'saved_owner']);
+        Livewire::actingAs($user)->test('pages::settings.profile')
+            ->set('display_name', '  Saved name  ')->set('bio', '   ')->call('save')
+            ->assertHasNoErrors()->assertSet('display_name', 'Saved name')->assertSet('bio', '')
+            ->assertDispatched('profile-updated', function ($event, $params) {
+                $this->assertEqualsCanonicalizing(['username', 'display_name', 'bio', 'is_private', 'timezone', 'theme_key'], array_keys($params['values']));
+
+                return $params['values']['display_name'] === 'Saved name' && $params['values']['bio'] === '';
+            });
+        $this->assertNull($user->fresh()->bio);
+    }
+
     // ---------------------------------------------------------------
     // Access control
     // ---------------------------------------------------------------

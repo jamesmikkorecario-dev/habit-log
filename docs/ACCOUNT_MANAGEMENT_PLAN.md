@@ -1,6 +1,10 @@
 # Account management implementation plan
 
-Status: Phases 1 (password) and 2 (verified email) are implemented; Phase 3 session management is implemented and locally verified. Phase 4 account deletion is implemented and locally verified; the report records the dependency remediation and outstanding backup/production prerequisites; Settings draft protection remains proposed. Phase 2 evidence is recorded in [the email-change report](ACCOUNT_EMAIL_CHANGE_REPORT.md) and [ADR-0009](adr/ADR-0009-VERIFIED-EMAIL-CHANGE.md). Reviewed on 2026-10-25 against synchronized `dev` at `e124ee14896706e31587b03b227a1b8029abadbe` (also the remote `dev` and `main` head at review time). The original plan below describes the broader follow-up. Current implementation evidence is recorded in [the Phase 1 report](ACCOUNT_PASSWORD_CHANGE_REPORT.md).
+Status: Phases 1 (password) and 2 (verified email) are implemented; Phase 3 session management is implemented and locally verified. Phase 4 account deletion is implemented and locally verified; the report records the dependency remediation and outstanding backup/production prerequisites; Phase 5 Settings draft protection is implemented and locally verified. Phase 2 evidence is recorded in [the email-change report](ACCOUNT_EMAIL_CHANGE_REPORT.md) and [ADR-0009](adr/ADR-0009-VERIFIED-EMAIL-CHANGE.md). Reviewed on 2026-10-25 against synchronized `dev` at `e124ee14896706e31587b03b227a1b8029abadbe` (also the remote `dev` and `main` head at review time). The original plan below describes the broader follow-up. Current implementation evidence is recorded in [the Phase 1 report](ACCOUNT_PASSWORD_CHANGE_REPORT.md).
+
+## Phase 5 accepted scope
+
+Settings now compares drafts with loaded/server-confirmed values and warns before navigation. Profile saves disable editing while pending and advance the baseline only on successful normalized feedback. Native security submissions warn before discarding other forms, while explicit logout, confirmed deletion and authentication transitions take precedence. No persistent drafts, new schema or dependencies are introduced. This supersedes the earlier draft-protection deferral; see [the report](SETTINGS_UNSAVED_CHANGES_REPORT.md) and [ADR-0012](adr/ADR-0012-SETTINGS-DRAFT-PROTECTION.md). Earlier phase exclusions below are historical.
 
 ## Phase 4 accepted scope
 
