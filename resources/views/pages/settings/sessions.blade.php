@@ -50,7 +50,7 @@
         <flux:modal name="revoke-session" class="w-[calc(100%-2rem)] min-w-0! max-w-lg [&_[data-flux-modal-close]_button]:min-h-11 [&_[data-flux-modal-close]_button]:min-w-11"
             x-init="$el.querySelector('dialog').setAttribute('aria-labelledby', 'revoke-session-title'); $el.querySelector('dialog').setAttribute('aria-describedby', 'revoke-session-description')"
             x-on:close="submitting = false; $el.querySelector('form').reset()">
-            <form method="POST" action="{{ route('settings.sessions.revoke') }}" aria-label="Confirm session sign out" class="space-y-6"
+            <form method="POST" data-settings-form="security" action="{{ route('settings.sessions.revoke') }}" aria-label="Confirm session sign out" class="space-y-6"
                 x-on:submit="if (submitting) $event.preventDefault(); else submitting = true" x-bind:aria-busy="submitting">
                 @csrf
                 <input type="hidden" name="session_target" x-bind:value="target">

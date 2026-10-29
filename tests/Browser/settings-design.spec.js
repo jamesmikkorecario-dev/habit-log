@@ -118,7 +118,8 @@ test('profile settings design groups preferences, preserves drafts and confirms 
     await expect(success.getByText('Saved.', { exact: true })).toBeVisible();
     await bio.fill('Edited after saving');
     await expect(success.getByText('Saved.', { exact: true })).not.toBeVisible();
-    // Settings has no navigation guard: an explicit reload retains only saved values.
+    // Explicitly discard through the browser-owned unload confirmation.
+    page.once('dialog', dialog => dialog.accept());
     await page.reload();
     await expect(bio).toHaveValue('0');
     await expect(display).toHaveValue('');

@@ -24,7 +24,7 @@
         <flux:modal name="delete-account" class="w-[calc(100%-2rem)] min-w-0! max-w-lg [&_[data-flux-modal-close]_button]:min-h-11 [&_[data-flux-modal-close]_button]:min-w-11"
             x-init="$el.querySelector('dialog').setAttribute('aria-labelledby', 'delete-account-confirmation'); $el.querySelector('dialog').setAttribute('aria-describedby', 'delete-account-consequence')"
             x-on:close="submitting = false; $el.querySelector('form').reset()">
-            <form method="POST" action="{{ route('settings.account.destroy') }}" aria-label="Confirm account deletion" class="space-y-5"
+            <form method="POST" data-settings-form="security" data-settings-force-leave action="{{ route('settings.account.destroy') }}" aria-label="Confirm account deletion" class="space-y-5"
                 x-on:submit="if (submitting) $event.preventDefault(); else submitting = true" x-bind:aria-busy="submitting"
                 x-on:pageshow.window="submitting = false; if ($event.persisted) $el.reset()">
                 @csrf

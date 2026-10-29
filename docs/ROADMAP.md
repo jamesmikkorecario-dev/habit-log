@@ -60,3 +60,5 @@ Verified login-email changes are implemented with current-password checks, expir
 Session management is implemented and locally verified: owner session listing, individual/all-other revocation, current-password confirmation, current-session retention, durable stale-session rejection and the accepted shared remember-token limitation. See [the session report](ACCOUNT_SESSION_MANAGEMENT_REPORT.md) and [ADR-0010](adr/ADR-0010-SESSION-MANAGEMENT.md). Account deletion and Settings draft protection remain deferred.
 
 Account-management Phase 4: secure account deletion is implemented and locally verified; see [the implementation report](ACCOUNT_DELETION_REPORT.md). It is separate from the completed core roadmap phases; the Composer advisory is patched; local backup remediation and production backup/restore prerequisites remain open. Settings draft protection remains deferred.
+
+Account-management Phase 5: Settings unsaved-change protection is implemented and locally verified. See [the implementation report](SETTINGS_UNSAVED_CHANGES_REPORT.md). This supersedes the earlier Settings draft-protection deferral; backup/restore deployment blockers remain open.

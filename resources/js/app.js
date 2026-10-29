@@ -1,3 +1,4 @@
+import { settingsDirty, confirmSettingsLeave, permitSettingsLeave } from './settings-guard';
 import './terminal-path';
 import './checkpoint-progress';
 import './activity-calendar';
@@ -7,6 +8,7 @@ import './activity-calendar';
 const positionKey = 'habitLogPosition';
 let position = Number.isInteger(history.state?.[positionKey]) ? history.state[positionKey] : 0;
 let restoring = false;
+let afterRestore = null;
 const pushState = history.pushState.bind(history);
 const replaceState = history.replaceState.bind(history);
 
@@ -24,10 +26,23 @@ window.addEventListener('popstate', (event) => {
     if (restoring) {
         event.stopImmediatePropagation();
         restoring = false;
+        const restored = afterRestore;
+        afterRestore = null;
+        restored?.();
         return;
     }
 
     const destination = event.state?.[positionKey];
+    if (settingsDirty() && Number.isInteger(destination) && destination !== position) {
+        event.stopImmediatePropagation();
+        restoring = true;
+        afterRestore = () => confirmSettingsLeave(() => {
+            permitSettingsLeave();
+            history.go(destination - position);
+        });
+        history.go(position - destination);
+        return;
+    }
     const editor = document.querySelector('[data-journal-editor], [data-entry-editor], [data-habit-configuration]');
     const dirty = editor && window.Alpine?.$data(editor).dirty;
 

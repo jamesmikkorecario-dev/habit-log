@@ -19,7 +19,7 @@
                     x-data x-init="$nextTick(() => $el.focus())">{{ session('password-status') }}</p>
             @endif
 
-            <form method="POST" action="{{ route('user-password.update') }}" aria-label="Change password" class="space-y-5"
+            <form method="POST" data-settings-form="security" action="{{ route('user-password.update') }}" aria-label="Change password" class="space-y-5"
                 x-data="{ submitting: false }" x-on:submit="if (submitting) $event.preventDefault(); else submitting = true" x-bind:aria-busy="submitting"
                 x-on:pageshow.window="submitting = false; if ($event.persisted) $el.reset()">
                 @csrf

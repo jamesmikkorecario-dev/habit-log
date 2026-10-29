@@ -1,5 +1,5 @@
 @props(['action', 'label', 'variant' => 'primary'])
-<form method="POST" action="{{ $action }}" aria-label="{{ $label }}" class="space-y-5"
+<form method="POST" data-settings-form="security" action="{{ $action }}" aria-label="{{ $label }}" class="space-y-5"
     x-data="{ submitting: false }" x-on:submit="if (submitting) $event.preventDefault(); else submitting = true" x-bind:aria-busy="submitting"
     x-on:pageshow.window="submitting = false; if ($event.persisted) $el.reset()">
     @csrf

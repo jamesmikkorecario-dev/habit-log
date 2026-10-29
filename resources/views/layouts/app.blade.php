@@ -67,7 +67,7 @@
                                     <flux:menu.item :href="route('settings.profile')" wire:navigate>
                                         Profile settings
                                     </flux:menu.item>
-                                    <form method="POST" action="{{ route('logout') }}">
+                                    <form method="POST" action="{{ route('logout') }}" data-settings-force-leave>
                                         @csrf
                                         <flux:menu.item type="submit">
                                             Log out
@@ -131,7 +131,7 @@
                             >
                                 Profile settings
                             </a>
-                            <form method="POST" action="{{ route('logout') }}">
+                            <form method="POST" action="{{ route('logout') }}" data-settings-force-leave>
                                 @csrf
                                 <button
                                     type="submit"
@@ -150,6 +150,10 @@
                 {{ $slot }}
             </main>
         </div>
+
+        @if(request()->routeIs('settings.*'))
+            <x-settings-unsaved-dialog />
+        @endif
 
         @persist('toast')
             <flux:toast.group>
