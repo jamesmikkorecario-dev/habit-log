@@ -92,6 +92,8 @@ class FortifyServiceProvider extends ServiceProvider
             ->by((string) $request->user()?->getAuthIdentifier()));
         RateLimiter::for('session-revoke', fn (Request $request) => Limit::perMinute(5)
             ->by((string) $request->user()?->getAuthIdentifier()));
+        RateLimiter::for('account-delete', fn (Request $request) => Limit::perMinute(5)
+            ->by((string) $request->user()?->getAuthIdentifier()));
         RateLimiter::for('email-delivery', fn (Request $request) => Limit::perMinute(1)
             ->by((string) $request->user()?->getAuthIdentifier()));
 

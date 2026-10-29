@@ -7,8 +7,15 @@ use App\Services\SocialAccess;
 
 class UserPolicy
 {
+    public function delete(User $actor, User $subject): bool
+    {
+        return $actor->id === $subject->id;
+    }
+
     public function viewShared(User $viewer, User $subject): bool
     {
-        return app(SocialAccess::class)->profile($viewer, $subject->fresh());
+        $fresh = $subject->fresh();
+
+        return $fresh !== null && app(SocialAccess::class)->profile($viewer, $fresh);
     }
 }

@@ -162,3 +162,5 @@ Suggested future commit message: `fix(auth): revoke reset sessions and harden ac
 ## Account management Phase 1 follow-up
 
 The previously missing authenticated password-change surface is now implemented at Settings → Security. It verifies the current password, retains the initiating browser, revokes other sessions/remembered access/reset links, and rejects stale credential writes under the user lock. [The implementation report](ACCOUNT_PASSWORD_CHANGE_REPORT.md) records the current validation evidence. Email changes, device/session-management UI, account deletion, and Settings draft protection are still deferred; the earlier findings table remains the historical review snapshot.
+
+Account-management Phase 4 follow-up: confirmed account deletion is implemented in Settings → Security with passing PHP/browser verification. The report records the dependency remediation and outstanding backup/production prerequisites. See [the report](ACCOUNT_DELETION_REPORT.md) and [ADR-0011](adr/ADR-0011-ACCOUNT-DELETION.md). Earlier deferred-deletion findings are historical; Settings draft protection remains deferred.
