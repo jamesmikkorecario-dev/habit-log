@@ -12,10 +12,11 @@ RUN apt-get update \
     && cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 COPY docker/apache/app.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/php/app.ini /usr/local/etc/php/conf.d/habit-log.ini
+COPY docker/healthcheck.sh /usr/local/bin/habit-log-healthcheck
 WORKDIR /var/www/html
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl --fail --silent http://127.0.0.1:8080/up > /dev/null || exit 1
+    CMD ["sh", "/usr/local/bin/habit-log-healthcheck"]
 
 FROM php-base AS dependencies
 COPY --from=composer /usr/bin/composer /usr/local/bin/composer

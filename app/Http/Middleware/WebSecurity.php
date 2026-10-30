@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Auth\CredentialUrls;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
@@ -21,7 +22,15 @@ class WebSecurity
             }, 'password-confirmation');
         } else {
             $response = $request->isMethod('POST') && $request->routeIs('register.store', 'password.email', 'password.update')
-                ? app(ThrottleRequests::class)->handle($request, $next, 'public-auth')
+                ? app(ThrottleRequests::class)->handle($request, function (Request $request) use ($next) {
+                    if ($request->routeIs('password.email')) {
+                        // Run after throttling but before user lookup/token creation.
+                        app('mail.manager')->assertSafeMailer();
+                        CredentialUrls::origin();
+                    }
+
+                    return $next($request);
+                }, 'public-auth')
                 : $next($request);
         }
 

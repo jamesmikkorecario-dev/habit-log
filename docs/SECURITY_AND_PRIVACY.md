@@ -1,5 +1,7 @@
 # Security and privacy
 
+Password-reset and signed email-change links use validated `APP_URL`, never inbound Host/forwarded-host values. Production requires HTTPS and exact-host validation. `TRUSTED_PROXIES` defaults to no trusted peers and admits only explicit IPs/CIDRs; forwarded host/prefix are excluded. Production mail rejects log/array and unsafe nested/URL-overridden transports. Delivery/configuration failures are reported without message bodies, tokens, URLs, credentials or original transport exceptions; password recovery fails with a generic 503 and unsafe configuration creates no token. Local/test synthetic mail capture remains supported. External mail delivery, ingress/TLS and upstream log behavior still need target verification. See [the remediation report](PASSWORD_RESET_SECURITY_REPORT.md).
+
 Use Laravel session authentication, password hashing, CSRF middleware, validation, output escaping, and authenticated route middleware without weakening defaults. Authorize ownership and visibility server-side via Policies/Gates; hidden controls are never sufficient.
 
 New habits default private. Journals, mood, and habit notes are private. Private-account follower requests require approval. Public/follower-visible activity never exposes private notes. Avoid logging passwords, tokens, journal content, mood, or private notes.

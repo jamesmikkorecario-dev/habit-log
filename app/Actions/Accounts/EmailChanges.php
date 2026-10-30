@@ -2,13 +2,13 @@
 
 namespace App\Actions\Accounts;
 
+use App\Auth\CredentialUrls;
 use App\Models\PendingEmailChange;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -65,7 +65,7 @@ class EmailChanges
                 'source_email' => $fresh->email, 'new_email' => $email,
                 'token_hash' => hash('sha256', $token), 'expires_at' => now()->addHour(), 'last_sent_at' => now(),
             ]);
-            $url = URL::temporarySignedRoute('settings.email.verify', $pending->expires_at, [
+            $url = CredentialUrls::generator()->temporarySignedRoute('settings.email.verify', $pending->expires_at, [
                 'generation' => $pending->id, 'owner' => $fresh->id, 'token' => $token,
             ]);
 

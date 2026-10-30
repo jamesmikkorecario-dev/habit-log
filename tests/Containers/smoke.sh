@@ -12,7 +12,7 @@ trap cleanup EXIT HUP INT TERM
 chmod 600 "$runtime_env"
 {
     printf 'APP_KEY=base64:%s\n' "$(openssl rand -base64 32)"
-    printf 'APP_ENV=production\nAPP_DEBUG=false\nSESSION_DRIVER=file\nCACHE_STORE=file\nMAIL_MAILER=array\n'
+    printf 'APP_ENV=production\nAPP_DEBUG=false\nAPP_URL=https://127.0.0.1\nSESSION_DRIVER=file\nCACHE_STORE=file\nMAIL_MAILER=array\n'
 } > "$runtime_env"
 docker run --detach --name "$container" --env-file "$runtime_env" \
     --publish 127.0.0.1::8080 "$image" >/dev/null
@@ -38,6 +38,14 @@ docker exec "$container" sh -ec '
     test ! -w app
 '
 test "$(curl --silent -o /dev/null -w '%{http_code}' "$origin/login")" = 200
+test "$(curl --silent -o /dev/null -w '%{http_code}' -H 'Host: untrusted.example.test' "$origin/login")" = 400
+test "$(curl --silent -o /dev/null -w '%{http_code}' -H 'X-Forwarded-Host: untrusted.example.test' -H 'X-Forwarded-Proto: http' "$origin/login")" = 200
+docker exec "$container" php artisan config:cache >/dev/null
+docker exec "$container" php artisan route:cache >/dev/null
+docker exec "$container" php artisan view:cache >/dev/null
+docker exec "$container" sh /usr/local/bin/habit-log-healthcheck
+test "$(curl --silent -o /dev/null -w '%{http_code}' -H 'Host: untrusted.example.test' "$origin/login")" = 400
+docker exec -i "$container" php < tests/Fixtures/production-mail-security.php
 for path in .env composer.json vendor/autoload.php; do
     test "$(curl --silent -o /dev/null -w '%{http_code}' "$origin/$path")" = 404
 done
@@ -48,7 +56,7 @@ for asset in $assets; do curl --fail --silent "$origin/build/$asset" >/dev/null;
 curl --silent "$origin/reset-password/container-token-canary?email=query-canary" >/dev/null
 curl --silent "$origin/login?container-query-canary=1" >/dev/null
 curl --silent "$origin/settings/security/email/verify?token=email-change-token-canary&signature=email-change-signature-canary" >/dev/null
-if docker logs "$container" 2>&1 | grep -E 'container-token-canary|query-canary|email-change-token-canary|email-change-signature-canary'; then
+if docker logs "$container" 2>&1 | grep -qE 'container-token-canary|query-canary|email-change-token-canary|email-change-signature-canary|production-mail-secret-canary'; then
     echo 'Sensitive URL reached container logs.' >&2; exit 1
 fi
-echo 'Production image passed: non-root, runtime-only files, health/login/assets, document root, CSRF and log privacy.'
+echo 'Production image passed: non-root, runtime-only files, health/login/assets, document root, CSRF, trusted hosts, cached config, credential URLs and mail/log privacy.'

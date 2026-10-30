@@ -15,24 +15,6 @@ use Illuminate\Validation\ValidationException;
 
 class EmailChangeController extends Controller
 {
-    private function nonDeliveringMailer(string $name, array $seen = []): bool
-    {
-        if (in_array($name, $seen)) {
-            return true;
-        }
-        $config = config('mail.mailers.'.$name, []);
-        if (in_array($config['transport'] ?? null, ['log', 'array', null])) {
-            return true;
-        }
-        foreach ($config['mailers'] ?? [] as $child) {
-            if ($this->nonDeliveringMailer($child, [...$seen, $name])) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     public function settings(Request $request)
     {
         return view('pages.settings.security', ['pendingEmail' => PendingEmailChange::where('user_id', $request->user()->id)->first(), 'sessionListing' => app(ManageSessions::class)->listing($request)]);
@@ -52,9 +34,7 @@ class EmailChangeController extends Controller
         }
         try {
             // Production authentication links must never go to application logs.
-            if (app()->isProduction() && $this->nonDeliveringMailer(config('mail.default'))) {
-                throw new \RuntimeException('Transactional mail is not configured.');
-            }
+            app('mail.manager')->assertSafeMailer();
             Notification::route('mail', $pending->new_email)->notify(new VerifyEmailChange($url));
         } catch (\Throwable) {
             return redirect()->route('settings.security')->withErrors(['email_change' => 'We could not deliver the verification email. Your current email has not changed. Wait one minute, then retry.'], $bag);
@@ -96,6 +76,7 @@ class EmailChangeController extends Controller
         $session->handle($request);
         $message = 'Email changed. Your other sessions and remembered logins have been signed out.';
         try {
+            app('mail.manager')->assertSafeMailer();
             Notification::route('mail', $oldEmail)->notify(new EmailChanged);
         } catch (\Throwable) {
             $message .= ' We could not deliver the security alert to your previous address.';
