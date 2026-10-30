@@ -1,5 +1,7 @@
 # Deployment and recovery
 
+Managed backup/recovery operator procedures and remaining provisioning gates are documented in [BACKUP_RECOVERY_SECURITY_REPORT.md](BACKUP_RECOVERY_SECURITY_REPORT.md) and [ADR-0014](adr/ADR-0014-BACKUP-RECOVERY-SECURITY.md). Do not enable backup/restore in production until the independent durable deletion state, key custody, expiry scheduler, alerts and isolated cutover have been verified. Existing historical restore instructions are not a substitute for deletion reconciliation.
+
 Status: Phase 7 provider-neutral runbook with local rehearsal evidence in [the closeout](PHASE_7_CLOSEOUT.md); target-host verification remains open. This is a provider-neutral procedure, not evidence of a deployed service. Record target-host, TLS, mail and recovery checks in the Phase 7 closeout before launch. Use [database design](DATABASE_DESIGN.md) for migration semantics and [security/privacy](SECURITY_AND_PRIVACY.md) for disclosure rules.
 
 A production Docker image is available; see [the Docker guide](DOCKER.md#production-image) for build/runtime commands and container persistence. The host/TLS/mail/recovery checks here still apply.
@@ -48,19 +50,17 @@ A strict content security policy is not claimed by Phase 7 without compatibility
 
 Coordinate a maintenance window for schema/history upgrades and prevent all writers while the backup/upgrade boundary is established. Existing migrations include MySQL DDL and restart-safe per-habit history backfill; the whole upgrade is not one transaction.
 
-Back up the application database, persistent storage required by the installation, current release identity and secret recovery material (including the application key), with encryption and separate access-controlled storage. Do not put the encryption key beside its backup. Use a database client option file owned/readable only by the operator rather than passwords on the command line. A template database export is:
+Use the managed encrypted workflow in [the backup/recovery security report](BACKUP_RECOVERY_SECURITY_REPORT.md) once its UUID migration and independently durable store have been provisioned. With writers/schema changes stopped, run:
 
 ```bash
-mysqldump --defaults-extra-file=/secure/path/database-client.cnf \
-  --single-transaction --no-tablespaces --set-gtid-purged=OFF \
-  --routines --triggers --events DATABASE_NAME > /secure/path/backup.sql
+php artisan recovery:manage backup --confirm-writers-stopped
 ```
 
-Replace the conspicuous path/database placeholders for the target. Encrypt and transfer the export through the approved backup system, verify completion, and remove transient plaintext according to that system's procedure. `--single-transaction` is not protection against concurrent schema changes; do not run other DDL during export. Include every domain table, not only current habits: historical versions/checkpoints, entries, suspensions, journals and follow approvals are essential.
+This command streams encrypted application-table data without a plaintext SQL file. Preserve compatible release identity, the application key and other required persistent storage separately under approved encryption/access controls; do not place decryption keys beside backups. The supported snapshot schema is explicit and incompatible schema objects fail closed. A backup made before a schema upgrade requires the matching older schema/release for isolated restoration before a separately rehearsed forward migration.
 
-The account-deletion policy now requires database backups, if configured, to be encrypted and access-restricted, retained for **at most 30 days**, and automatically purged after expiry. Backup frequency, off-host location, key custody and recovery objectives still require operator decisions; daily backups, a recovery point within 24 hours and recovery within four hours remain proposed targets, not measured guarantees. This retention is separate from recoverable habit trash.
+Managed artifacts expire at 29 days and a Laravel minute schedule purges registered artifacts, providing operational margin before the approved **30-day maximum**. Operators must run and monitor that schedule and enforce the maximum on every external copy. Frequency, off-host storage, key custody and RPO/RTO remain operator decisions; prior daily/24-hour/four-hour suggestions are not approved guarantees. This retention is separate from recoverable habit trash.
 
-Before production backup/restore is enabled, establish a durable access-restricted deletion record outside the backups being restored, with minimum necessary identifiers. Capture and retain enough deletion information to cover every restorable backup. Restore only in isolation; reapply all relevant account deletions and verify removal before allowing traffic or outbound mail. If reliable reconciliation is unavailable, **do not restore a backup containing deleted accounts into a live environment**. The application-level deletion implementation does not provide an external deletion store, backup expiry automation or verified restore reconciliation. Existing backups must be addressed before release. See [ADR-0011](adr/ADR-0011-ACCOUNT-DELETION.md) and [the local inventory](ACCOUNT_DELETION_REPORT.md#read-only-backup-inventory).
+Independent deletion records, current-state verification and isolated reconciliation are mandatory before recovery admission. The new application controls do not provision or prove production durability, scheduling or alert delivery. Legacy SQL/host snapshots, including pre-UUID backups, are not supported by these commands and need a separately approved procedure that can reliably suppress all prior deletions. Without that evidence, **do not restore them into an accessible environment**. Existing backup containment/disposal still needs explicit authorization. See [ADR-0014](adr/ADR-0014-BACKUP-RECOVERY-SECURITY.md) and [the local inventory](ACCOUNT_DELETION_REPORT.md#read-only-backup-inventory).
 
 ## Fresh install or populated upgrade
 
@@ -104,14 +104,16 @@ Phase 6 activates explicit public/followers visibility across stored history for
 
 ## Restore drill and rollback
 
-A backup is not verified until restored. Restore to a new isolated database/service with no live traffic or outbound mail. Verify the actual connected database name before importing. Do not point browser/PHPUnit destructive tooling at that environment unless it is the explicitly guarded test database.
+A backup is not verified until restored. Follow the complete [isolated restore/admission procedure](BACKUP_RECOVERY_SECURITY_REPORT.md#operator-provisioning-and-procedures): provision a new empty matching schema, configure recovery mode and the exact target database, independently verify ledger freshness, and block traffic, workers and outbound mail before importing. Never point destructive PHPUnit/browser tooling at anything except its explicitly guarded synthetic databases.
 
 ```bash
-mysql --defaults-extra-file=/secure/path/restore-client.cnf RESTORE_DATABASE_NAME \
-  < /secure/path/decrypted-backup.sql
+php artisan recovery:manage restore --backup=REGISTERED_UUID --confirm-isolated
+php artisan recovery:manage reconcile --confirm-isolated
+# Only after the authoritative source is drained and permanently stopped:
+php artisan recovery:manage admit --confirm-isolated --confirm-source-stopped
 ```
 
-Protect/remove the decrypted transient file according to the backup procedure. Start a compatible application release using the restored database and preserved application key, with mail captured locally. Compare table counts/checksums or equivalent complete data checks, then verify login, raw entries, versions/checkpoints, suspensions, journals, follows, analytics and privacy using synthetic/authorized data. Record backup size, export/import times, data comparison and application checks; compare the measured recovery time with the agreed objective. Keep the restore isolated until explicitly authorized for cutover.
+Reconciliation removes deleted owner graphs and all restored authentication state. Verify surviving activity/privacy and record size, times and data checks against approved RPO/RTO. Admission rechecks the latest ledger and revokes the old installation generation; recovery mode still blocks HTTP until an explicitly authorized switch to live and ingress cutover. Missing/incomplete state, uncertain commits or unverified external freshness block recovery. A failed import cannot be admitted as an empty success. Never disable the recovery gate or recreate its ledger to bypass a failure.
 
 For an application regression, stop writers if needed, switch to the prior compatible release, rebuild that release's config/route/view caches, reload PHP and repeat the smoke checks. Keep additive tables and raw data. Do not blindly run `migrate:rollback`: tracking rollback destroys history, journal rollback destroys journals, and follows rollback destroys approvals. If reverting across Phase 6, remove shared routes by using the prior owner-only code while retaining follows. Schema/data changes need a specific forward repair or tested restore plan.
 
