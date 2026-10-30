@@ -9,6 +9,7 @@ use App\Services\Analytics\ActivityAnalytics;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Tests\Feature\Tracking\TrackingTestCase;
@@ -16,6 +17,8 @@ use Tests\Feature\Tracking\TrackingTestCase;
 // Deliberately outside the default suite: this is a repeatable, larger measurement.
 class PerformanceTest extends TrackingTestCase
 {
+    private array $hydrated = [];
+
     public function test_representative_history_and_request_measurements(): void
     {
         $this->assertSame('habit_log_test', config('database.connections.mysql.database'));
@@ -25,6 +28,17 @@ class PerformanceTest extends TrackingTestCase
         Testable::macro('measuredResponse', function () {
             return $this->lastState->getResponse()->getContent();
         });
+        Event::listen('eloquent.retrieved: *', function (string $event) {
+            $model = substr($event, strlen('eloquent.retrieved: '));
+            $this->hydrated[$model] = ($this->hydrated[$model] ?? 0) + 1;
+        });
+        $dashboardOnly = getenv('HABIT_LOG_PERFORMANCE_SCOPE') === 'dashboard';
+        $label = getenv('HABIT_LOG_PERFORMANCE_LABEL') ?: 'latest';
+        $this->assertMatchesRegularExpression('/\A[a-z0-9-]+\z/', $label);
+        $directory = storage_path('app/dashboard-performance');
+        if (! is_dir($directory)) {
+            mkdir($directory, 0700, true);
+        }
         $results = ['php' => PHP_VERSION, 'mysql' => DB::selectOne('SELECT VERSION() AS version')->version, 'scenarios' => []];
         foreach ([[10, 1], [100, 5]] as [$count, $years]) {
             Artisan::call('migrate:fresh', ['--force' => true]);
@@ -94,11 +108,14 @@ class PerformanceTest extends TrackingTestCase
                 'habits' => fn () => $this->actingAs($owner)->get('/habits')->assertOk()->getContent(),
                 'categories' => fn () => $this->actingAs($owner)->get('/categories')->assertOk()->getContent(),
             ];
+            if ($dashboardOnly) {
+                $measures = array_intersect_key($measures, array_flip(['owner_report', 'shared_report', 'dashboard']));
+            }
             foreach ($measures as $name => $run) {
                 $scenario['measurements'][$name] = $this->measure($run);
                 fwrite(STDERR, "Measured {$count} habits: {$name}\n");
             }
-            foreach (['following', 'followers', 'incoming', 'sent'] as $tab) {
+            foreach ($dashboardOnly ? [] : ['following', 'followers', 'incoming', 'sent'] as $tab) {
                 $component = Livewire::actingAs($owner)->test('pages::people.index');
                 $scenario['measurements']['relationships_'.$tab] = $this->measure(fn () => $component->call('setTab', $tab)->assertOk()->measuredResponse());
             }
@@ -106,12 +123,14 @@ class PerformanceTest extends TrackingTestCase
             $scenario['measurements']['date_details'] = $this->measure(fn () => $component->call('selectDay', '2026-10-04')->assertOk()->measuredResponse());
             $component->set('yearInput', 2025);
             $scenario['measurements']['year_change'] = $this->measure(fn () => $component->call('goToYear')->assertOk()->measuredResponse());
+            $scenario['measurements']['year_step'] = $this->measure(fn () => $component->call('changeYear', 0)->assertOk()->measuredResponse());
             $scenario['plans'] = [
                 'entries' => DB::select('EXPLAIN SELECT id, status FROM habit_entries WHERE habit_id = ? AND id > 0 ORDER BY id LIMIT 500', [$habit->id]),
                 'incoming' => DB::select('EXPLAIN SELECT id FROM follows WHERE followed_id = ? AND status = ? ORDER BY id DESC LIMIT 20', [$owner->id, 'accepted']),
                 'outgoing' => DB::select('EXPLAIN SELECT id FROM follows WHERE follower_id = ? AND status = ? ORDER BY id DESC LIMIT 20', [$owner->id, 'pending']),
             ];
             $results['scenarios'][] = $scenario;
+            file_put_contents($directory.'/'.$label.'.json', json_encode($results, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
             file_put_contents(storage_path('app/phase7-checks/performance.json'), json_encode($results, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
         }
     }
@@ -123,12 +142,25 @@ class PerformanceTest extends TrackingTestCase
             gc_collect_cycles();
             memory_reset_peak_usage();
             $baseMemory = memory_get_usage(true);
+            $this->hydrated = [];
             DB::enableQueryLog();
             DB::flushQueryLog();
             $start = hrtime(true);
             try {
                 $content = $run();
-                $samples[] = ['ms' => round((hrtime(true) - $start) / 1e6, 2), 'queries' => count(DB::getQueryLog()), 'peak_mb' => round(memory_get_peak_usage(true) / 1048576, 2), 'additional_peak_mb' => round((memory_get_peak_usage(true) - $baseMemory) / 1048576, 2), 'bytes' => strlen($content)];
+                $elapsed = (hrtime(true) - $start) / 1e6;
+                $queries = DB::getQueryLog();
+                $groups = [];
+                foreach ($queries as $query) {
+                    preg_match('/from `([^`]+)`/', $query['query'], $match);
+                    $table = $match[1] ?? 'other';
+                    $groups[$table] ??= ['count' => 0, 'ms' => 0];
+                    $groups[$table]['count']++;
+                    $groups[$table]['ms'] += $query['time'];
+                }
+                $samples[] = ['ms' => round($elapsed, 2), 'queries' => count($queries), 'sql_ms' => round(array_sum(array_column($queries, 'time')), 2),
+                    'query_groups' => $groups, 'hydrated_models' => $this->hydrated,
+                    'peak_mb' => round(memory_get_peak_usage(true) / 1048576, 2), 'additional_peak_mb' => round((memory_get_peak_usage(true) - $baseMemory) / 1048576, 2), 'bytes' => strlen($content)];
             } finally {
                 DB::disableQueryLog();
                 DB::flushQueryLog();

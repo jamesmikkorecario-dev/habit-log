@@ -2,8 +2,8 @@
 
 namespace App\Services\Analytics;
 
+use App\Enums\HabitEntryStatus;
 use App\Models\Habit;
-use App\Models\HabitEntry;
 use App\Models\User;
 use App\Services\SocialAccess;
 use Carbon\CarbonImmutable;
@@ -99,24 +99,39 @@ class ActivityAnalytics
                             $lifecycle = $habit->archived_at ? 'Archived — streak paused across inactive dates' : ($current?->end_date && $current->end_date->toDateString() < self::date($last) ? 'Ended — last eligible streak retained' : null);
                         }
                     }
-                    // Stream lifetime entries: only event boundaries and visible-year details survive a batch.
-                    HabitEntry::query()
+                    // Project lifetime rows without hydrating a model for every entry.
+                    // Only event boundaries and visible-year details survive a batch.
+                    DB::table('habit_entries')
                         ->where('user_id', $user->id)->whereIn('habit_id', $habits->modelKeys())
                         ->where('entry_date', '<=', self::date($last))
                         ->select(['id', 'habit_id', 'habit_tracking_version_id', 'entry_date', 'status', 'value'])
-                        ->with(['checkpoints:id,habit_entry_id,habit_tracking_checkpoint_id,is_completed'])
-                        ->chunkById(500, function ($entries) use (&$events, &$details, $contexts, $last, $first, $yearEnd, $habitId) {
+                        ->chunkById(2000, function ($entries) use (&$events, &$details, $contexts, $last, $first, $yearEnd, $habitId) {
+                            $checkpointIds = [];
                             foreach ($entries as $entry) {
-                                $date = $entry->getRawOriginal('entry_date');
-                                $day = self::day($date);
+                                if (($contexts[$entry->habit_id]['setups'][$entry->habit_tracking_version_id]['type'] ?? null) === 'checkpoint') {
+                                    $checkpointIds[] = $entry->id;
+                                }
+                            }
+                            $checkpoints = [];
+                            if ($checkpointIds) {
+                                foreach (DB::table('habit_checkpoint_entries')->whereIn('habit_entry_id', $checkpointIds)
+                                    ->get(['habit_entry_id', 'habit_tracking_checkpoint_id', 'is_completed']) as $checkpoint) {
+                                    $checkpoints[$checkpoint->habit_entry_id][] = $checkpoint;
+                                }
+                            }
+                            $days = [];
+                            foreach ($entries as $entry) {
+                                $date = $entry->entry_date;
+                                $day = $days[$date] ??= self::day($date);
+                                $entry->value = $entry->value === null ? null : (int) $entry->value;
                                 $context = $contexts[$entry->habit_id];
                                 $base = $context['versions']->isEmpty() ? $this->scoring->state('unavailable') : $this->scoring->state($this->contains($context['ranges'], $day) ? ($day === $last ? 'pending' : 'unlogged') : 'inactive');
                                 $version = $context['versions']->get($entry->habit_tracking_version_id);
-                                $result = $this->entryScore($entry, $context['setups'][$entry->habit_tracking_version_id] ?? null, $date, $context['suspensions']);
+                                $result = $this->entryScore($entry, $context['setups'][$entry->habit_tracking_version_id] ?? null, $date, $context['suspensions'], $checkpoints[$entry->id] ?? []);
                                 $this->add($events, $day, $day, $base, -1);
                                 $this->add($events, $day, $day, $result);
                                 if ($habitId !== null && $day >= $first && $day <= $yearEnd) {
-                                    $details[$day] = ['assessment' => $entry->status->label(), 'actual' => $entry->value, 'type' => $version?->type->label(), 'goal' => $version?->goal_value, 'unit' => $version?->goal_unit];
+                                    $details[$day] = ['assessment' => HabitEntryStatus::from($entry->status)->label(), 'actual' => $entry->value, 'type' => $version?->type->label(), 'goal' => $version?->goal_value, 'unit' => $version?->goal_unit];
                                 }
                             }
                         });
@@ -144,7 +159,7 @@ class ActivityAnalytics
         });
     }
 
-    private function entryScore($entry, ?array $setup, string $date, array $suspensions): array
+    private function entryScore(\stdClass $entry, ?array $setup, string $date, array $suspensions, array $checkpoints): array
     {
         // Setups came exclusively from this habit's versions; a foreign version
         // has no lookup entry. SQL DATE strings sort in calendar order.
@@ -160,10 +175,14 @@ class ActivityAnalytics
             }
         }
         $ids = $setup['checkpoints'];
-        $actualIds = $entry->checkpoints->pluck('habit_tracking_checkpoint_id')->all();
+        $actualIds = array_column($checkpoints, 'habit_tracking_checkpoint_id');
         $valid = count($actualIds) === count($ids) && count(array_diff($actualIds, $ids)) === 0;
+        $checked = 0;
+        foreach ($checkpoints as $checkpoint) {
+            $checked += (bool) $checkpoint->is_completed ? 1 : 0;
+        }
 
-        return $this->scoring->calculate($setup['type'], $setup['goal'], $entry->status->value, $entry->value, $entry->checkpoints->where('is_completed', true)->count(), count($ids), $valid);
+        return $this->scoring->calculate($setup['type'], $setup['goal'], $entry->status, $entry->value, $checked, count($ids), $valid);
     }
 
     /** Eligible intervals, clipped by the next configuration and all suspension periods. */
