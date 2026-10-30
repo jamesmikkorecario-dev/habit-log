@@ -7,6 +7,7 @@ use App\Mail\ProductionMailFailure;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -30,13 +31,32 @@ use Illuminate\Support\Str;
  * @property Carbon|null $updated_at
  */
 #[Fillable(['name', 'email', 'password', 'username', 'display_name', 'bio', 'is_private', 'theme_key', 'timezone'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'recovery_uuid'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, HasUuids, Notifiable;
 
     protected $attributes = ['timezone' => 'UTC'];
+
+    protected static function booted(): void
+    {
+        static::updating(function (User $user): void {
+            if ($user->isDirty('recovery_uuid')) {
+                throw new \LogicException('Account recovery identity is immutable.');
+            }
+        });
+    }
+
+    public function uniqueIds(): array
+    {
+        return ['recovery_uuid'];
+    }
+
+    public function newUniqueId(): string
+    {
+        return (string) Str::uuid();
+    }
 
     public function sendPasswordResetNotification(#[\SensitiveParameter] $token)
     {

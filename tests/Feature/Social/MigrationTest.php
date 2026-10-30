@@ -22,12 +22,17 @@ class MigrationTest extends TrackingTestCase
         $followPath = ['database/migrations/2026_10_04_000002_create_follows_table.php'];
         try {
             $this->assertSame(0, Artisan::call('migrate:fresh', ['--force' => true, '--path' => $paths]));
-            $habit = $this->habit();
+            $owner = User::factory()->make();
+            $owner->id = DB::table('users')->insertGetId($owner->getAttributes());
+            $owner = User::findOrFail($owner->id);
+            $habit = $this->habit(user: $owner);
             $version = $habit->versions()->sole();
             app(SaveHabitEntry::class)->handle($habit->user, $habit->id, '2026-09-27', ['status' => 'completed', 'completed' => [], 'note' => 'Keep private history'], null, $version->id, 1, 'UTC');
             Journal::factory()->for($habit->user)->create();
             $tables = ['users', 'habits', 'habit_entries', 'habit_tracking_versions', 'habit_tracking_checkpoints', 'habit_checkpoint_entries', 'habit_checkpoints', 'habit_suspensions', 'categories', 'journals'];
-            $other = User::factory()->create();
+            $other = User::factory()->make();
+            $other->id = DB::table('users')->insertGetId($other->getAttributes());
+            $other = User::findOrFail($other->id);
             $before = collect($tables)->mapWithKeys(fn ($table) => [$table => DB::table($table)->orderBy('id')->get()->toJson()])->all();
             $this->assertSame(0, Artisan::call('migrate', ['--force' => true, '--path' => $followPath]));
             $this->assertDatabaseCount('follows', 0);

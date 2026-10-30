@@ -20,7 +20,9 @@ class MigrationTest extends TestCase
             $this->assertSame(0, Artisan::call('migrate:fresh', ['--force' => true, '--path' => $paths]));
             $user = User::factory()->make(['bio' => 'Keep this profile']);
             unset($user->timezone);
-            $user->save();
+            // Insert the historical shape without current model UUID defaults.
+            $user->id = DB::table('users')->insertGetId($user->getAttributes());
+            $user = User::findOrFail($user->id);
             $this->assertSame(0, Artisan::call('migrate:rollback', ['--step' => 4, '--force' => true, '--path' => $paths]));
             foreach (['categories', 'category_aliases', 'habits', 'habit_checkpoints'] as $table) {
                 $this->assertFalse(Schema::hasTable($table));

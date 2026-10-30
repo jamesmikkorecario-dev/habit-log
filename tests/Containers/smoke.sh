@@ -25,6 +25,7 @@ for attempt in $(seq 1 60); do
 done
 if [ "$ready" != 1 ]; then echo 'Container did not become healthy.' >&2; exit 1; fi
 test "$(docker exec "$container" id -u)" != 0
+docker exec "$container" php -r 'exit(extension_loaded("sodium") && extension_loaded("posix") && function_exists("fsync") ? 0 : 1);'
 docker exec "$container" sh -ec '
     test ! -e .env
     test ! -e .env.testing
@@ -46,6 +47,7 @@ docker exec "$container" php artisan view:cache >/dev/null
 docker exec "$container" sh /usr/local/bin/habit-log-healthcheck
 test "$(curl --silent -o /dev/null -w '%{http_code}' -H 'Host: untrusted.example.test' "$origin/login")" = 400
 docker exec -i "$container" php < tests/Fixtures/production-mail-security.php
+docker exec -i "$container" php < tests/Fixtures/production-recovery-security.php
 for path in .env composer.json vendor/autoload.php; do
     test "$(curl --silent -o /dev/null -w '%{http_code}' "$origin/$path")" = 404
 done
@@ -56,7 +58,26 @@ for asset in $assets; do curl --fail --silent "$origin/build/$asset" >/dev/null;
 curl --silent "$origin/reset-password/container-token-canary?email=query-canary" >/dev/null
 curl --silent "$origin/login?container-query-canary=1" >/dev/null
 curl --silent "$origin/settings/security/email/verify?token=email-change-token-canary&signature=email-change-signature-canary" >/dev/null
-if docker logs "$container" 2>&1 | grep -qE 'container-token-canary|query-canary|email-change-token-canary|email-change-signature-canary|production-mail-secret-canary'; then
+if docker logs "$container" 2>&1 | grep -qE 'container-token-canary|query-canary|email-change-token-canary|email-change-signature-canary|production-mail-secret-canary|production-recovery-synthetic-canary'; then
     echo 'Sensitive URL reached container logs.' >&2; exit 1
 fi
+# Warm recovery configuration in the disposable container. No DB or mounted
+# recovery storage is available: all application routes must fail closed.
+docker exec -e RECOVERY_MODE=recovery "$container" php artisan config:cache >/dev/null
+# Restart the serving PHP processes after replacing cached configuration, as
+# required at cutover; otherwise OPcache may still serve the prior file.
+docker restart "$container" >/dev/null
+port=$(docker port "$container" 8080/tcp | sed 's/.*://')
+origin="http://127.0.0.1:$port"
+ready=0
+for attempt in $(seq 1 60); do
+    if curl --fail --silent "$origin/up" >/dev/null; then ready=1; break; fi
+    sleep 1
+done
+if [ "$ready" != 1 ]; then echo 'Recovery container did not become healthy.' >&2; exit 1; fi
+docker exec "$container" sh /usr/local/bin/habit-log-healthcheck
+for path in login dashboard livewire/update settings/security; do
+    test "$(curl --silent -o /dev/null -w '%{http_code}' "$origin/$path")" = 503
+done
 echo 'Production image passed: non-root, runtime-only files, health/login/assets, document root, CSRF, trusted hosts, cached config, credential URLs and mail/log privacy.'
+echo 'Recovery quarantine passed: required PHP extensions, cached configuration, liveness and blocked application access without database or ledger availability.'

@@ -4,6 +4,7 @@ namespace Tests\Feature\Journals;
 
 use App\Actions\Habits\SaveHabitEntry;
 use App\Models\Journal;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,10 @@ class MigrationTest extends TrackingTestCase
         $journalPath = ['database/migrations/2026_10_04_000001_create_journals_table.php'];
         try {
             $this->assertSame(0, Artisan::call('migrate:fresh', ['--force' => true, '--path' => $paths]));
-            $habit = $this->habit();
+            $owner = User::factory()->make();
+            $owner->id = DB::table('users')->insertGetId($owner->getAttributes());
+            $owner = User::findOrFail($owner->id);
+            $habit = $this->habit(user: $owner);
             $version = $habit->versions()->sole();
             app(SaveHabitEntry::class)->handle($habit->user, $habit->id, '2026-09-27', ['status' => 'completed', 'completed' => [], 'note' => 'Keep private history'], null, $version->id, 1, 'UTC');
             $tables = ['users', 'habits', 'habit_entries', 'habit_tracking_versions', 'habit_suspensions', 'categories'];

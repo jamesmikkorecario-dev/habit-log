@@ -1,9 +1,11 @@
 <?php
 
 use App\Auth\CredentialUrls;
+use App\Http\Middleware\RecoveryAdmission;
 use App\Http\Middleware\RejectRevokedSession;
 use App\Http\Middleware\WebSecurity;
 use App\Mail\ProductionMailFailure;
+use App\Services\Recovery\RecoveryFailure;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -19,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(RecoveryAdmission::class);
         $middleware->trustHosts(at: fn () => ['^'.preg_quote(parse_url(CredentialUrls::origin(), PHP_URL_HOST), '/').'$'], subdomains: false);
         // Forwarded host/prefix are deliberately excluded. Ingress must retain
         // the canonical Host; forwarded scheme/IP/port require explicit trust.
@@ -27,6 +30,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(AuthenticateSession::class, RejectRevokedSession::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->report(function (RecoveryFailure $exception): void {
+            Log::error('Recovery safeguards unavailable; operation blocked.');
+        })->stop();
+        $exceptions->render(function (RecoveryFailure $exception, Request $request) {
+            return response('Recovery safeguards are unavailable. Please try again later.', 503)
+                ->header('Cache-Control', 'private, no-store');
+        });
         $exceptions->dontFlash(['current_password', 'password', 'password_confirmation', 'token', 'signature']);
         $exceptions->report(function (ProductionMailFailure $exception): void {
             Log::error('Production security mail unavailable. Check transport configuration and delivery.');

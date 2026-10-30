@@ -1,5 +1,13 @@
 # Database design
 
+## Deployment remediation 2 recovery identity
+
+Migration `2026_10_30_000001_add_recovery_identity.php` adds unique non-null `users.recovery_uuid`, backfills random UUIDs in batches of 500, and creates `recovery_state` (single application-managed row: ledger UUID, generation UUID, optional backup UUID, import/admission status and external revision). Apply with writers stopped before enabling managed backups. User creation generates UUIDs; ordinary model updates cannot change them; serialization hides them. This distinguishes deleted accounts from subsequent numeric-ID reuse.
+
+`recovery_state` is an admission marker, not an authoritative deletion ledger. The durable minimal UUID/status records live outside all restored database backups. Snapshots deliberately omit the active admission row; imports create a new blocked generation. Recovery shares existing FK-preserving account cleanup and clears restored authentication state. Existing foreign keys and raw surviving activity are unchanged. The down migration removes recovery metadata and invalidates these guarantees; use only in isolation after retiring the managed workflow and its backups. Older backups without these identities are unsupported and cannot be admitted by fabricating a new ledger. See [ADR-0014](adr/ADR-0014-BACKUP-RECOVERY-SECURITY.md).
+
+This required UUID column is not write-compatible with pre-remediation user-creation code. Once managed backups/deletion capture are enabled, rollback must retain recovery-aware code and these columns, or stop all writers pending compatible forward repair. Older account-deletion code also lacks external capture and must not be reintroduced while managed backups remain restorable. Do not treat a generic prior-release switch or dropping this migration as a safe recovery plan.
+
 Phase 0 implements `users`, `password_reset_tokens`, and `sessions`. Phase 1 extends `users` with the profile fields below. Phase 2 adds categories, aliases, habits, and checkpoint configuration. Phase 3 adds timezone, tracking configuration history, daily entries, and suspension intervals. Phase 5 adds private daily journals; Phase 6 adds directional follows. Habit type and visibility use PHP backed enums with string database columns, boundary validation, and Eloquent enum casts; no database ENUMs.
 
 ## Implemented user profile
