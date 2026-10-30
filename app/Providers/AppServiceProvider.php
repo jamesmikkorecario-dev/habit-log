@@ -3,9 +3,12 @@
 namespace App\Providers;
 
 use App\Actions\Accounts\SessionSecurity;
+use App\Auth\CredentialUrls;
 use App\Auth\RevocableDatabaseSessionHandler;
+use App\Mail\SecureMailManager;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -20,7 +23,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->extend('mail.manager', fn ($manager, $app) => new SecureMailManager($app));
     }
 
     /**
@@ -29,6 +32,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        ResetPassword::createUrlUsing(fn ($user, $token) => CredentialUrls::generator()->route('password.reset', [
+            'token' => $token, 'email' => $user->getEmailForPasswordReset(),
+        ]));
         Session::extend('database', fn ($app) => new RevocableDatabaseSessionHandler(
             $app['db']->connection(config('session.connection')), config('session.table'), config('session.lifetime'), $app,
         ));

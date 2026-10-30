@@ -1,5 +1,7 @@
 # Architecture
 
+Deployment remediation 1 pins password-reset and signed email-change URLs to validated `APP_URL` through a cloned Laravel URL generator (`CredentialUrls`), leaving ordinary request URL generation unchanged. Exact-host middleware and explicitly configured proxy IPs/CIDRs protect production requests. `SecureMailManager` validates resolved production transports (including URL overrides/composites), wraps delivery failures without private diagnostics, and suppresses composite per-attempt exception logging. Reset preflight runs after rate limiting and before account lookup/token creation; direct user notifications retain the same mail boundary. Existing token, session, confirmation and transactional ownership rules remain intact. See [ADR-0013](adr/ADR-0013-CREDENTIAL-DELIVERY-SECURITY.md).
+
 habit.log is a Laravel modular monolith. Docker Compose provides Apache/PHP, Vite and MySQL for local development; a separate production image packages the runtime with compiled assets. Native Ubuntu/WSL development remains supported by starting only the MySQL service. [ADR-0007](adr/ADR-0007-CONTAINER-RUNTIME.md) supersedes the initial native-only runtime decision; [the Docker guide](DOCKER.md) describes configuration, persistence and verification.
 
 Livewire components own UI state and interaction, with Alpine.js for small client-side behavior. Blade renders views but does not contain substantial business logic. Validation occurs at Laravel/Livewire boundaries. Policies/Gates and authentication middleware enforce authorization server-side.

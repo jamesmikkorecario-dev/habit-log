@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Mail\ProductionMailFailure;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -36,6 +37,19 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $attributes = ['timezone' => 'UTC'];
+
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token)
+    {
+        try {
+            app('mail.manager')->assertSafeMailer();
+            parent::sendPasswordResetNotification($token);
+        } catch (\Throwable $exception) {
+            if (app()->isProduction()) {
+                throw new ProductionMailFailure;
+            }
+            throw $exception;
+        }
+    }
 
     /**
      * Get the attributes that should be cast.

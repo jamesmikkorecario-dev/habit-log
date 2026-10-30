@@ -325,6 +325,7 @@ class EmailChangeTest extends TrackingTestCase
 
     public function test_production_mail_cannot_log_verification_tokens_even_through_failover(): void
     {
+        config(['app.url' => 'https://localhost']);
         $this->app->instance('env', 'production');
         foreach (['log', 'array', 'failover'] as $mailer) {
             config(['mail.default' => $mailer]);
