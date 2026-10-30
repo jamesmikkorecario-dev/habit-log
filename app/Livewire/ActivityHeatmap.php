@@ -111,8 +111,9 @@ class ActivityHeatmap extends Component
     public function changeYear(int $direction): void
     {
         abort_unless(in_array($direction, [-1, 0, 1], true), 422);
-        $report = $this->activity;
-        $this->year = $direction === 0 ? (int) substr($report['today'], 0, 4) : max(1000, min((int) substr($report['today'], 0, 4), (int) $this->year + $direction));
+        $this->validateYear();
+        $currentYear = (int) substr($this->owner()->localToday(), 0, 4);
+        $this->year = $direction === 0 ? $currentYear : max(1000, min($currentYear, (int) $this->year + $direction));
         $this->yearInput = $this->year;
         $this->reset('selectedDate', 'listPage');
         $this->browseDate = $this->year.'-01-01';
