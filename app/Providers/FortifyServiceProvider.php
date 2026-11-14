@@ -14,6 +14,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
@@ -28,6 +29,9 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Own route registration so verification can use Laravel's relative
+        // signature middleware without duplicate routes or alias overrides.
+        Fortify::ignoreRoutes();
         $this->app->extend('auth.password', fn ($manager, $app) => new AccountPasswordBrokerManager($app));
         $this->app->bind(\Laravel\Fortify\Contracts\PasswordUpdateResponse::class, PasswordUpdateResponse::class);
         $this->app->bind(SuccessfulPasswordResetLinkRequestResponse::class, RecoveryLinkResponse::class);
@@ -49,6 +53,11 @@ class FortifyServiceProvider extends ServiceProvider
         $this->configureActions();
         $this->configureViews();
         $this->configureRateLimiting();
+        Route::group([
+            'namespace' => 'Laravel\\Fortify\\Http\\Controllers',
+            'domain' => config('fortify.domain', null),
+            'prefix' => config('fortify.prefix'),
+        ], fn () => $this->loadRoutesFrom(base_path('routes/fortify.php')));
     }
 
     /**

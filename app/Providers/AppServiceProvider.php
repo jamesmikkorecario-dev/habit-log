@@ -36,10 +36,10 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         Livewire::addPersistentMiddleware([EnsureEmailIsVerified::class]);
-        VerifyEmail::createUrlUsing(fn ($user) => CredentialUrls::generator()->temporarySignedRoute(
+        VerifyEmail::createUrlUsing(fn ($user) => CredentialUrls::origin().CredentialUrls::generator()->temporarySignedRoute(
             'verification.verify', now()->addMinutes(config('auth.verification.expire', 60)), [
                 'id' => $user->getKey(), 'hash' => sha1($user->getEmailForVerification()),
-            ],
+            ], absolute: false,
         ));
         ResetPassword::createUrlUsing(fn ($user, $token) => CredentialUrls::generator()->route('password.reset', [
             'token' => $token, 'email' => $user->getEmailForPasswordReset(),
