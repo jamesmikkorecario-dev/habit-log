@@ -4,15 +4,21 @@ namespace App\Http\Middleware;
 
 use App\Auth\CredentialUrls;
 use Closure;
+use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Laravel\Fortify\Features;
 use Symfony\Component\HttpFoundation\Response;
 
 class WebSecurity
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->isMethod('PUT') && $request->routeIs('user-password.update') && $request->user()) {
+        if ($request->user() && ! $request->user()->hasVerifiedEmail()
+            && $request->routeIs('user-password.update', 'password.confirm', 'password.confirm.store', 'password.confirmation')) {
+            // Fortify security routes live outside the verified app group.
+            $response = app(EnsureEmailIsVerified::class)->handle($request, $next);
+        } elseif ($request->isMethod('PUT') && $request->routeIs('user-password.update') && $request->user()) {
             $response = app(ThrottleRequests::class)->handle($request, $next, 'password-change');
         } elseif ($request->isMethod('POST') && $request->routeIs('password.confirm.store') && $request->user()) {
             $response = app(ThrottleRequests::class)->handle($request, function (Request $request) use ($next) {
@@ -23,7 +29,8 @@ class WebSecurity
         } else {
             $response = $request->isMethod('POST') && $request->routeIs('register.store', 'password.email', 'password.update')
                 ? app(ThrottleRequests::class)->handle($request, function (Request $request) use ($next) {
-                    if ($request->routeIs('password.email')) {
+                    if ($request->routeIs('password.email')
+                        || ($request->routeIs('register.store') && Features::enabled(Features::emailVerification()))) {
                         // Run after throttling but before user lookup/token creation.
                         app('mail.manager')->assertSafeMailer();
                         CredentialUrls::origin();

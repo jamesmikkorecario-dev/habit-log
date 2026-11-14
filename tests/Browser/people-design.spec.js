@@ -1,6 +1,6 @@
 import { test, expect } from './fixtures.js';
 import { mkdirSync } from 'node:fs';
-import { action, register } from './support.js';
+import { action, register, registerUnverified, verificationLink } from './support.js';
 
 mkdirSync('storage/app/people-design-checks', { recursive: true });
 
@@ -35,13 +35,9 @@ test('people design supports username onboarding and exact lookup without a user
     const otherContext = await browser.newContext();
     const other = await otherContext.newPage();
     const target = await register(other, 'peoplelookup');
-    await page.goto('/register');
-    await page.getByLabel('Name', { exact: true }).fill('New member');
-    await page.getByLabel('Email address').fill(`people_new_${Date.now()}@example.test`);
-    await page.getByLabel('Password', { exact: true }).fill('Browser-test-123!');
-    await page.getByLabel('Confirm password', { exact: true }).fill('Browser-test-123!');
-    await page.getByRole('button', { name: 'Create account', exact: true }).click();
-    await page.waitForURL(/\/(dashboard|people)$/);
+    const member = await registerUnverified(page, 'people_new_');
+    await page.goto(await verificationLink(member.email));
+    await page.waitForURL(url => /^\/(dashboard|people)$/.test(url.pathname));
     await page.goto('/people');
     await expect(page.getByRole('heading', { name: 'Set up your username', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'My profile', exact: true })).toHaveCount(0);

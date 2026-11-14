@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Mail\ProductionMailFailure;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -32,7 +32,7 @@ use Illuminate\Support\Str;
  */
 #[Fillable(['name', 'email', 'password', 'username', 'display_name', 'bio', 'is_private', 'theme_key', 'timezone'])]
 #[Hidden(['password', 'remember_token', 'recovery_uuid'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasUuids, Notifiable;
@@ -69,6 +69,39 @@ class User extends Authenticatable
             }
             throw $exception;
         }
+    }
+
+    public function sendEmailVerificationNotification()
+    {
+        try {
+            app('mail.manager')->assertSafeMailer();
+            parent::sendEmailVerificationNotification();
+        } catch (\Throwable $exception) {
+            if (app()->isProduction()) {
+                throw new ProductionMailFailure;
+            }
+            throw $exception;
+        }
+    }
+
+    public function markEmailAsVerified(): bool
+    {
+        return $this->getConnection()->transaction(function () {
+            // Share the credential/deletion owner lock and reject a request
+            // admitted before the identity or credentials changed.
+            $fresh = static::query()->lockForUpdate()->find($this->id);
+            abort_unless($fresh && $fresh->recovery_uuid === $this->recovery_uuid && $fresh->email === $this->email
+                && hash_equals($fresh->password, $this->password), 403);
+            if ($fresh->hasVerifiedEmail()) {
+                $this->setRawAttributes($fresh->getAttributes(), true);
+
+                return false;
+            }
+            $fresh->forceFill(['email_verified_at' => $fresh->freshTimestamp()])->save();
+            $this->setRawAttributes($fresh->getAttributes(), true);
+
+            return true;
+        });
     }
 
     /**

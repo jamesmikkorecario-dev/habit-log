@@ -8,13 +8,16 @@ use App\Auth\RevocableDatabaseSessionHandler;
 use App\Mail\SecureMailManager;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Middleware\EnsureEmailIsVerified;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -32,6 +35,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        Livewire::addPersistentMiddleware([EnsureEmailIsVerified::class]);
+        VerifyEmail::createUrlUsing(fn ($user) => CredentialUrls::generator()->temporarySignedRoute(
+            'verification.verify', now()->addMinutes(config('auth.verification.expire', 60)), [
+                'id' => $user->getKey(), 'hash' => sha1($user->getEmailForVerification()),
+            ],
+        ));
         ResetPassword::createUrlUsing(fn ($user, $token) => CredentialUrls::generator()->route('password.reset', [
             'token' => $token, 'email' => $user->getEmailForPasswordReset(),
         ]));

@@ -69,7 +69,7 @@ class DatabaseCacheTest extends TestCase
             'password' => 'password',
             'password_confirmation' => 'password',
         ])->assertSessionHasNoErrors()
-            ->assertRedirect(route('dashboard', absolute: false));
+            ->assertRedirect(route('verification.notice', absolute: false));
 
         $this->assertAuthenticated();
         $this->assertDatabaseHas('users', ['email' => 'cache-probe@example.com']);

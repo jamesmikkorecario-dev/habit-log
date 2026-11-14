@@ -7,6 +7,7 @@ use App\Auth\CredentialUrls;
 use App\Mail\ProductionMailFailure;
 use App\Models\User;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -107,6 +108,11 @@ class ResetDeploymentSecurityTest extends TestCase
         $this->assertSame('/reset-password/synthetic-reset-canary', parse_url($reset, PHP_URL_PATH));
         parse_str(parse_url($reset, PHP_URL_QUERY), $query);
         $this->assertSame($user->email, $query['email']);
+        $verification = (new VerifyEmail)->toMail($user)->actionUrl;
+        $this->assertSame('approved.example.test', parse_url($verification, PHP_URL_HOST));
+        $this->assertSame('https', parse_url($verification, PHP_URL_SCHEME));
+        $this->assertSame(8443, parse_url($verification, PHP_URL_PORT));
+        $this->assertTrue(URL::hasValidSignature(Request::create($verification)));
         [, $email] = app(EmailChanges::class)->request($user, ['current_password' => 'password', 'new_email' => 'proposed@example.test', 'generation' => 'none']);
         $this->assertSame('approved.example.test', parse_url($email, PHP_URL_HOST));
         $this->assertSame('https', parse_url($email, PHP_URL_SCHEME));
@@ -307,5 +313,44 @@ class ResetDeploymentSecurityTest extends TestCase
         $this->assertSame(1, $first->sent);
         $this->assertSame(1, $second->sent);
         $this->assertCount(0, $handler->getRecords());
+    }
+
+    public function test_registration_rejects_unsafe_production_mail_before_account_creation(): void
+    {
+        $this->production();
+        config(['mail.default' => 'log']);
+        $handler = $this->logs();
+        $this->withSession(['_token' => 'csrf'])->postJson('https://localhost/register', ['_token' => 'csrf', 'name' => 'Synthetic', 'email' => 'new@example.test',
+            'password' => 'New-password-123!', 'password_confirmation' => 'New-password-123!'])->assertStatus(503);
+        $this->assertDatabaseMissing('users', ['email' => 'new@example.test']);
+        $this->assertGuest();
+        $this->assertCount(1, $handler->getRecords());
+        $this->assertSame([], $handler->getRecords()[0]->context);
+    }
+
+    public function test_verification_resend_sanitizes_production_delivery_failures_without_verifying_the_account(): void
+    {
+        $owner = User::factory()->unverified()->create();
+        $this->production();
+        $handler = $this->logs();
+        app('mail.manager')->extend('smtp', fn () => $this->transport(fail: true));
+        $response = $this->actingAs($owner)->withSession(['_token' => 'csrf'])
+            ->postJson('https://localhost/email/verification-notification', ['_token' => 'csrf'])->assertStatus(503);
+        $this->assertNull($owner->fresh()->email_verified_at);
+        $encoded = json_encode([$handler->getRecords(), $response->json()]);
+        foreach ([$owner->email, 'smtp-credential-canary', '/email/verify/', 'signature='] as $secret) {
+            $this->assertStringNotContainsString($secret, $encoded);
+        }
+        $this->assertCount(1, $handler->getRecords());
+        $this->assertSame([], $handler->getRecords()[0]->context);
+    }
+
+    public function test_direct_verification_notification_cannot_use_unsafe_production_mail(): void
+    {
+        $owner = User::factory()->unverified()->create();
+        $this->production();
+        config(['mail.default' => 'log']);
+        $this->expectException(ProductionMailFailure::class);
+        $owner->sendEmailVerificationNotification();
     }
 }

@@ -1,5 +1,7 @@
 # Database design
 
+Registration email verification reuses nullable `users.email_verified_at`. There is no migration or backfill: existing null values remain unverified, while non-null values retain their meaning. Verification sets only that timestamp under the existing user-first locking boundary; a concurrent address/password change or account deletion rejects a stale verification. Domain records and recovery identity are unchanged.
+
 ## Database cache infrastructure
 
 Migration `2026_11_14_000001_create_cache_table.php` adds Laravel's standard `cache` and `cache_locks` tables for the configured database cache store. Both have a string `key` primary key and an indexed BIGINT `expiration`; `cache` stores a MEDIUMTEXT `value`, and `cache_locks` stores a string `owner`. There are no owner foreign keys: these are framework cache/rate-limit and lock records, separate from authoritative activity and recovery state. No existing rows or tables are changed by `up()`. `down()` drops only these two tables and loses their transient contents; routine deployment repair should apply the additive migration rather than roll back.

@@ -1,5 +1,5 @@
 import { test, expect } from "./fixtures.js";
-import { action } from "./support.js";
+import { action, verificationLink } from "./support.js";
 const base = "http://127.0.0.1:8017";
 async function register(p, username) {
     await p.goto(base + "/register");
@@ -14,7 +14,9 @@ async function register(p, username) {
     await p
         .getByRole("button", { name: "Create account", exact: true })
         .click();
-    await p.waitForURL(/\/(dashboard|people)$/);
+    await p.waitForURL(/\/email\/verify$/);
+    await p.goto(await verificationLink(username + "@example.test"));
+    await p.waitForURL(url => /^\/(dashboard|people)$/.test(url.pathname));
     await p.goto(base + "/settings/profile");
     await p.getByLabel("Username", { exact: true }).fill(username);
     await p.getByLabel("Bio", { exact: true }).fill("PRIVATE GATED BIO");

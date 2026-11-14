@@ -1,5 +1,6 @@
 import { test, expect } from "./fixtures.js";
 import AxeBuilder from "@axe-core/playwright";
+import { verificationLink } from "./support.js";
 
 for (const screen of ["login", "register"]) {
     test(`auth design ${screen}: responsive layout, keyboard and accessibility`, async ({ page }) => {
@@ -74,7 +75,9 @@ test("auth design preserves validation, old input, submission feedback and real 
     await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })));
     await expect(page.getByRole("button", { name: "Create account", exact: true })).toBeEnabled();
     await page.getByRole("button", { name: "Create account", exact: true }).click();
-    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page).toHaveURL(/\/email\/verify$/);
+    await page.goto(await verificationLink(email));
+    await expect(page).toHaveURL(/\/dashboard\?verified=1$/);
     await page.getByRole("button", { name: "Account menu", exact: true }).click();
     await page.getByRole("menuitem", { name: "Log out", exact: true }).click();
     await page.goto("/login");

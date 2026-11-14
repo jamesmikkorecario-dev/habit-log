@@ -75,6 +75,7 @@ class FortifyServiceProvider extends ServiceProvider
         /* @end-chisel-registration */
         Fortify::resetPasswordView(fn () => view('pages::auth.reset-password'));
         Fortify::requestPasswordResetLinkView(fn () => view('pages::auth.forgot-password'));
+        Fortify::verifyEmailView(fn () => view('pages::auth.verify-email'));
     }
 
     /**
@@ -84,6 +85,9 @@ class FortifyServiceProvider extends ServiceProvider
     {
         RateLimiter::for('public-auth', fn (Request $request) => Limit::perMinute(20)
             ->by($request->route()->getName().'|'.$request->ip()));
+
+        RateLimiter::for('email-verification', fn (Request $request) => Limit::perMinute(6)
+            ->by((string) $request->user()?->getAuthIdentifier()));
 
         RateLimiter::for('password-confirmation', fn (Request $request) => Limit::perMinute(5)
             ->by((string) $request->user()?->getAuthIdentifier()));

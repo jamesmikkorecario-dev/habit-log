@@ -1,5 +1,7 @@
 # Roadmap
 
+Registration email verification follow-up: Fortify verification, Terminal Green notice/resend, application/Fortify/Livewire gates, canonical expiring links and safe legacy-account handling are implemented. This explicitly supersedes the earlier registration-verification deferral. No account is automatically verified, no schema/backfill is introduced, and the existing email-change/deletion/recovery boundaries remain. See [ADR-0015](adr/ADR-0015-REGISTRATION-EMAIL-VERIFICATION.md) and [the implementation report](REGISTRATION_EMAIL_VERIFICATION_REPORT.md) for verification and rollout considerations; target-host acceptance remains separate.
+
 ## Phase 0 — Project Foundation (complete)
 
 Documentation, Laravel, MySQL, Livewire, Alpine, Tailwind, authentication, minimal responsive shell, testing, formatter, and Git initialization.
