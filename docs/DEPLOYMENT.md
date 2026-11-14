@@ -110,9 +110,12 @@ The targeted migration creates only the two cache tables and records its complet
 
 ## Acceptance after deployment
 
+Registration verification requires no migration or account backfill. Deploy the complete release, rebuild configuration/routes/views and reload serving processes using the normal procedure above. Retain existing `email_verified_at` values: null-timestamp owners will be gated on their next application request and must sign in, request verification and prove control of their current mailbox. Do not automatically verify accounts or send a bulk campaign. If initial delivery fails after an account was created, the owner should log in and resend instead of registering again. Plan support for inaccessible/mistyped addresses without silently marking them verified. Verify the canonical HTTPS `APP_URL`, trusted ingress, approved mail transport and restricted logs; verification URLs/signatures must not enter upstream access logs. Older unexpired resend links remain valid until expiry; successful replay is idempotent. The existing email-change flow retains its separate replacement/single-use rules.
+
 Use a controlled ordinary account and synthetic records; do not inspect other users' private data for a smoke test.
 
 - Verify HTTPS and `/up`, correct asset loading, redirects, session persistence, Secure/HttpOnly/SameSite cookies and rejection of unknown hosts. `/up` alone does not establish database, mail or product health.
+- Register a controlled synthetic account, confirm the notice and application/Settings gate, receive and use its 60-minute verification link through the actual HTTPS ingress, and verify access afterward. Check resend throttling, invalid/expired/foreign links, replay, logout, and an existing null-timestamp account. These target-host checks remain required even when SMTP delivery was previously verified.
 - Log in, create a private habit, record/reload a day, read its heatmap, and save/reload a journal. Check error logs without collecting the private text.
 - With a second controlled account, verify private-account gating, request/approval, shared permitted activity, hidden private fields and denied owner editing. Verify access is removed on the next request after revocation.
 - Complete a real password-reset delivery to an approved mailbox, use the link successfully, and ensure it cannot be reused. Avoid logging the token or full reset URL at the reverse proxy.

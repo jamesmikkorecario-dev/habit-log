@@ -13,6 +13,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -30,6 +31,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(AuthenticateSession::class, RejectRevokedSession::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->render(function (HttpException $exception, Request $request) {
+            if ($exception->getStatusCode() !== 403 || ! $request->routeIs('verification.verify') || ! $request->user()) {
+                return;
+            }
+            $message = 'This verification link is invalid or has expired. Request a new link.';
+            $response = $request->expectsJson()
+                ? response()->json(['message' => $message], 403)
+                : response()->view('pages::auth.verify-email', ['verificationError' => $message], 403);
+
+            return $response->withHeaders(['Cache-Control' => 'private, no-store', 'Referrer-Policy' => 'no-referrer', 'X-Content-Type-Options' => 'nosniff', 'X-Frame-Options' => 'SAMEORIGIN']);
+        });
         $exceptions->report(function (RecoveryFailure $exception): void {
             Log::error('Recovery safeguards unavailable; operation blocked.');
         })->stop();

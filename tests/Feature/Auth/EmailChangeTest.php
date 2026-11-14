@@ -127,11 +127,11 @@ class EmailChangeTest extends TrackingTestCase
         Notification::assertSentOnDemandTimes(VerifyEmailChange::class, 2);
     }
 
-    public function test_validation_guests_wrong_owner_and_no_global_verification_gate(): void
+    public function test_validation_guests_and_wrong_owner_for_verified_accounts(): void
     {
         $this->get('/settings/security')->assertRedirect('/login');
         $this->postJson(route('settings.email.request'), [])->assertUnauthorized();
-        $owner = User::factory()->unverified()->create();
+        $owner = User::factory()->create();
         foreach ([['new_email' => 'bad'], ['new_email' => ['bad']], ['new_email' => str_repeat('a', 256).'@example.test'], ['current_password' => ['bad']], ['current_password' => 'wrong'], ['new_email' => strtoupper($owner->email)]] as $invalid) {
             $this->travel(61)->seconds();
             $this->actingAs($owner)->from('/settings/security')->post(route('settings.email.request'), $invalid + ['new_email' => 'valid@example.test', 'current_password' => 'password', 'generation' => 'none'])

@@ -1,5 +1,9 @@
 # UI/UX specification
 
+## Registration email verification
+
+The verification notice uses the existing Terminal Green split authentication layout, near-black surfaces, emerald controls, inherited fonts, mobile home navigation and skip-to-form link. It shows only the authenticated owner's escaped, wrapping email address, explains the 60-minute link expiry and spam-folder check, and offers a native CSRF-protected Resend verification email form and Log out. Unverified users do not receive application navigation. Controls have at least 44px targets, visible focus and duplicate-submit feedback. A resend success is an announced, focused status. Invalid/expired/foreign links return a 403 notice with retry guidance; an already verified owner can continue to the dashboard. Rate-limit failures retain HTTP 429 and Retry-After. Normal verification completion follows Fortify's dashboard/intended redirect. No mailbox, token or signed URL is stored as a draft or rendered in feedback.
+
 Design mobile-first for comfortable daily use, then enhance wider layouts. Use near-black surfaces, phosphor-green accents, monospaced identity, subtle borders, restrained shadows, and contribution-grid cues. Phase 0 provides only one default theme foundation.
 
 Terminal styling is decorative: use standard links, buttons, forms, checkboxes, menus, dialogs, and touch controls—never typed commands. Maintain semantic markup, keyboard navigation, visible focus, sufficient contrast, reasonable touch targets, reduced-motion support, and responsive layouts. Heatmaps require accessible labels and a non-color status cue.

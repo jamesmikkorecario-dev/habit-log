@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 Route::view('/', 'welcome')->name('home');
 Route::view('/account-deleted', 'pages.settings.account-deleted')->middleware('guest')->name('account.deleted');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     // Persistent Livewire route binding runs before component hydration. If an
     // owner was deleted, leave the old shared content instead of a 404 overlay.
     $missingSharedOwner = fn (Request $request) => $request->hasHeader('X-Livewire')

@@ -75,6 +75,8 @@ return [
 
     'home' => '/dashboard',
 
+    'redirects' => ['register' => '/email/verify'],
+
     /*
     |--------------------------------------------------------------------------
     | Fortify Routes Prefix / Subdomain
@@ -116,6 +118,7 @@ return [
 
     'limiters' => [
         'login' => 'login',
+        'verification' => 'email-verification',
     ],
 
     /*
@@ -147,6 +150,7 @@ return [
         Features::registration(),
         /* @end-chisel-registration */
         Features::resetPasswords(),
+        Features::emailVerification(),
         Features::updatePasswords(),
     ],
 

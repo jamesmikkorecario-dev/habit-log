@@ -42,7 +42,13 @@ Authenticated owners can change their password in Settings → Security by provi
 
 Owners can request a verified login-email change in Settings → Security using their current password. The existing email stays active until a 60-minute, single-use link to the proposed address is confirmed with the current password. Resend/replacement invalidates older links; cancellation and expired-link recovery are supported. Request/resend feedback does not disclose address availability; uniqueness is enforced on confirmation after mailbox control is proved, as explicitly selected by the user. Confirmation retains that browser and revokes other sessions, remembered logins and old reset links. Password changes/resets cancel pending email changes. Habits, journals, relationships, history and privacy are preserved.
 
-Verification mail and a token-free alert to the previous address are narrowly scoped transactional security emails, explicitly excepted from the general notifications exclusion. No registration-wide verification gate, session-management UI, account deletion or Settings draft protection is added. See [ADR-0009](adr/ADR-0009-VERIFIED-EMAIL-CHANGE.md).
+Verification mail and a token-free alert to the previous address are narrowly scoped transactional security emails, explicitly excepted from the general notifications exclusion. That phase did not add a registration-wide verification gate, session-management UI, account deletion or Settings draft protection; the authorized registration verification follow-up below supersedes that gate deferral. See [ADR-0009](adr/ADR-0009-VERIFIED-EMAIL-CHANGE.md).
+
+## Registration email verification follow-up
+
+Registration uses Fortify email verification and sends an expiring, signed link for the authenticated account's current address. Until verified, an account can use the verification notice, resend and confirmation process and logout, but cannot access dashboard, tracking, journals, habits, categories, people or Settings, including their writes and subsequent Livewire updates. Resend and verification requests share a six-per-minute account limit. Successful verification is idempotent; an invalid, expired, foreign-account or changed-address link cannot grant access. Registration verification mail is a transactional security email, excepted from the general notifications exclusion.
+
+Existing null verification timestamps are never backfilled. Those owners sign in, verify their current mailbox and then regain application access. Existing verified addresses retain access. Password resets do not verify an address. The existing verified email-change, password/session, deletion and managed recovery contracts remain in effect. No new schema, data repair, background email campaign or automatic verification is authorized. See [ADR-0015](adr/ADR-0015-REGISTRATION-EMAIL-VERIFICATION.md).
 
 ## Account management Phase 3
 
