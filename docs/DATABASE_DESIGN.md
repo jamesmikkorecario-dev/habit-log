@@ -1,5 +1,13 @@
 # Database design
 
+## Database cache infrastructure
+
+Migration `2026_11_14_000001_create_cache_table.php` adds Laravel's standard `cache` and `cache_locks` tables for the configured database cache store. Both have a string `key` primary key and an indexed BIGINT `expiration`; `cache` stores a MEDIUMTEXT `value`, and `cache_locks` stores a string `owner`. There are no owner foreign keys: these are framework cache/rate-limit and lock records, separate from authoritative activity and recovery state. No existing rows or tables are changed by `up()`. `down()` drops only these two tables and loses their transient contents; routine deployment repair should apply the additive migration rather than roll back.
+
+`config/cache.php` defaults to `database`, and `.env.example` explicitly selects it. Feature regressions exercise database cache read/write/expiry, lock contention/release, and registration with real database-backed throttling; PHPUnit's usual array store cannot detect missing deployment cache tables. See [the deployment repair procedure](DEPLOYMENT.md#missing-database-cache-tables).
+
+Managed recovery explicitly recognizes and fingerprints both cache tables without exporting or importing their transient rows. An isolated restore target must already have empty cache tables; populated caches are rejected without deletion. The exact table allowlist, engine/object validation, schema/migration fingerprint matching, deletion reconciliation and admission rules remain enforced.
+
 ## Deployment remediation 2 recovery identity
 
 Migration `2026_10_30_000001_add_recovery_identity.php` adds unique non-null `users.recovery_uuid`, backfills random UUIDs in batches of 500, and creates `recovery_state` (single application-managed row: ledger UUID, generation UUID, optional backup UUID, import/admission status and external revision). Apply with writers stopped before enabling managed backups. User creation generates UUIDs; ordinary model updates cannot change them; serialization hides them. This distinguishes deleted accounts from subsequent numeric-ID reuse.

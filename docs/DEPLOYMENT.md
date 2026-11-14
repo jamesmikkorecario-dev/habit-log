@@ -36,6 +36,7 @@ Provision secret configuration before starting PHP, with at least:
 | `APP_KEY` | Generate once for a new installation; preserve on upgrades and restore. Store securely with recovery material. Never regenerate as part of normal release. |
 | `DB_CONNECTION`, host/port/name/user/password | MySQL with a dedicated account and intended database. Omit conflicting `DB_URL`; inspect resolved configuration without printing passwords. Use encrypted network transport when required by hosting. |
 | `SESSION_DRIVER`, cookies | Database sessions; `SESSION_SECURE_COOKIE=true`, `SESSION_HTTP_ONLY=true`, `SESSION_SAME_SITE=lax`; host-only domain unless a tested shared-domain requirement exists. |
+| `CACHE_STORE` | `database`; apply the cache-table migration before traffic. The default connection needs `cache` and `cache_locks`; custom `DB_CACHE_*` table/connection overrides need separately provisioned matching tables. |
 | `MAIL_*` | Real approved SMTP/transport and sender; verify a controlled password-reset mailbox and TLS. Production rejects log/array, unknown/missing transports and unsafe/cyclic/empty composite mailers, including `MAIL_URL` overrides. Local/test log/array workflows remain available; production rehearsals needing delivery must use an isolated SMTP capture service with synthetic mail. |
 | Logging | A supported channel with restricted access and rotation, debug disabled, appropriate error retention. Do not log request bodies, query bindings, cookies, auth headers, reset URLs or private content. |
 | Other services | Preserve synchronous behavior and current cache configuration unless a demonstrated requirement changes them. No queue worker/Redis/WebSocket service is required by the product. |
@@ -89,6 +90,23 @@ php artisan up
 ```
 
 Inspect only nonsecret output. The host-specific pointer/reload commands must be filled in and rehearsed before deployment. Have the prior code release ready if health checks fail.
+
+## Missing database cache tables
+
+Registration throttling uses the cache before account creation. With `CACHE_STORE=database`, missing `cache` or `cache_locks` tables can produce SQLSTATE `42S02` and HTTP 500 even when `users` and `sessions` exist. Keep database caching enabled and deploy `2026_11_14_000001_create_cache_table.php`; do not generate a second cache migration.
+
+Managed recovery recognizes exactly `cache` and `cache_locks` as transient infrastructure. Their definitions remain in the schema fingerprint, but their rows are excluded from backup exports and rejected in imports. Restore targets must have both tables empty; recovery never clears populated cache tables to make room. Unknown tables, including other names beginning with `cache`, remain unsupported. Older backups still require their matching schema/release for isolated restoration; this migration does not bypass fingerprint checks.
+
+For a targeted repair on the prepared release, first confirm the intended database, that both cache tables are absent, and that this migration is pending. Follow the maintenance and backup requirements above, then run:
+
+```bash
+php artisan migrate:status
+php artisan migrate --force --path=database/migrations/2026_11_14_000001_create_cache_table.php
+php artisan config:cache
+php artisan migrate:status
+```
+
+The targeted migration creates only the two cache tables and records its completion; it does not change existing account, session, activity or recovery rows. It is also included in the ordinary `migrate --force` release procedure. If either table already exists or migration history disagrees with the schema, inspect the mismatch before proceeding; do not drop existing tables or reset the database. Avoid cache-clearing commands until the tables exist. Reload PHP processes through the host's normal procedure, then verify controlled registration, login and rate limiting through the real ingress before reopening traffic. Applying this migration locally does not verify EthioDeploy's runtime configuration or resolve unrelated pending migrations.
 
 ## Acceptance after deployment
 

@@ -2,6 +2,23 @@
 
 Status: application implementation and local verification complete on 2026-10-30. Production provisioning and restore acceptance remain blocked as documented below. All changes remain uncommitted.
 
+## Database cache compatibility verification — 2026-11-14
+
+The cache repair adds Laravel's standard cache-table migration and keeps database caching enabled. The approved recovery compatibility change recognizes exactly `cache` and `cache_locks` in schema and empty-target validation; their definitions remain fingerprinted and their transient rows are excluded from exports and rejected in imports. Populated target caches, changed cache schemas and unknown tables (including `cache_extra` and `cache_locks_extra`) are covered by regression tests. Existing deletion reconciliation, interrupted-import quarantine, credential invalidation and admission tests pass unchanged.
+
+Read-only preflight verified the actual identities of `habit_log_test` and `habit_log_recovery_test` before testing. Existing testing-environment/configuration/identity checks and the shared test lock remain enforced; only those two authorized synthetic databases were reset. Development/production databases and existing backup artifacts were not modified. The pre-existing `ACCOUNT_DELETION_REPORT.md` changes retain their original SHA-256 checksum. No commit, push, PR, merge or deployment was performed.
+
+| Command | Result |
+| --- | --- |
+| `php artisan test --compact --filter='DatabaseCacheTest\|RecoveryWorkflowTest\|StorageSecurityTest'` | **33 passed / 250 assertions**, 134.90 seconds. |
+| `composer ci:check` | **Passed**, including Pint and the complete **560-test / 8,867-assertion** suite, 287.49 seconds for tests. CI output is local at `/tmp/habit-log-cache-ci-check.log`. |
+| `composer audit --locked` | **No security vulnerability advisories found**. |
+| `npm audit` | **0 vulnerabilities**. |
+| `npm run build` | **Passed**. |
+| `git diff --check` | **Passed**. |
+
+This resolves the 14 recovery failures found when the new cache migration first encountered the old schema allowlist. Target-host migration/configuration and controlled registration/recovery acceptance remain unverified; local checks do not authorize deployment or relax the production prerequisites below. Older backups retain their matching-schema requirement.
+
 ## Scope and implementation
 
 The authorized Deployment Remediation 2 addresses QA-01 inspection and the application controls for QA-02/03. Hosting is undecided. Use provider-neutral Laravel commands, existing PDO MySQL and PHP Sodium, and operator-provisioned POSIX storage. No external infrastructure is assumed configured. Preserve the existing account-deletion policy recheck; do not publish changes or mutate existing backup artifacts.
@@ -46,7 +63,7 @@ Operator action remains required for the expired plaintext export: restrict acce
 | Schema | `2026_10_30_000001_add_recovery_identity.php`, `User`: stable hidden recovery UUIDs and non-authoritative database admission marker. |
 | Verification/runtime | Recovery feature tests, temporary-storage helper, separate synthetic MySQL initialization, and production-container quarantine smoke assertions. |
 
-Snapshots omit the live `recovery_state` row. Restoring rows without an independently authorized generation cannot satisfy the enabled middleware. `RECOVERY_MODE=recovery` blocks all application routes before sessions/authentication even without DB/ledger availability; `/up` is intentionally only liveness. Static assets bypass PHP and must contain no private restored data. The platform must block private filesystem/DB access, outbound mail and workers independently.
+Snapshots omit the live `recovery_state` row. The cache-table compatibility fix also recognizes exactly `cache` and `cache_locks` as transient infrastructure: definitions remain fingerprinted, rows are neither exported nor accepted in imports, and restore refuses a target with rows in either table without deleting them. Unknown tables, including other `cache`-prefixed names, remain rejected. Restoring rows without an independently authorized generation cannot satisfy the enabled middleware. `RECOVERY_MODE=recovery` blocks all application routes before sessions/authentication even without DB/ledger availability; `/up` is intentionally only liveness. Static assets bypass PHP and must contain no private restored data. The platform must block private filesystem/DB access, outbound mail and workers independently.
 
 The master key, ledger, service UID, filesystem and operators are trusted. HMAC detects damage/unauthorized modification without the key; it does not prove that an administrator has supplied the newest complete state. A valid stale copy of the entire ledger can be indistinguishable from historical truth. Production requires an independently durable, current, access-restricted store that is never rewound with DB/host backups, plus freshness evidence before recovery. Without that evidence, **do not admit recovery**. This is an external prerequisite, not a claim implemented by directory permissions.
 

@@ -16,6 +16,9 @@ final class DatabaseSnapshot
         'habit_suspensions', 'journals', 'follows', 'pending_email_changes', 'sessions',
         'session_revocations', 'password_reset_tokens'];
 
+    // Fingerprinted and required empty on restore, but never exported/imported.
+    private const CACHE_TABLES = ['cache', 'cache_locks'];
+
     public function connection(): Connection
     {
         $connection = DB::connection();
@@ -35,7 +38,7 @@ final class DatabaseSnapshot
     {
         $database = $connection->getDatabaseName();
         $tables = $connection->select('SELECT TABLE_NAME AS name, ENGINE AS engine, TABLE_TYPE AS kind, AUTO_INCREMENT AS next_id FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? ORDER BY TABLE_NAME', [$database]);
-        $expected = [...self::TABLES, 'migrations', 'recovery_state'];
+        $expected = [...self::TABLES, ...self::CACHE_TABLES, 'migrations', 'recovery_state'];
         sort($expected);
         if (array_column($tables, 'name') !== $expected) {
             throw new RecoveryFailure;
@@ -104,7 +107,7 @@ final class DatabaseSnapshot
 
     public function assertEmpty(Connection $connection): void
     {
-        foreach ([...self::TABLES, 'recovery_state'] as $table) {
+        foreach ([...self::TABLES, ...self::CACHE_TABLES, 'recovery_state'] as $table) {
             if ($connection->table($table)->exists()) {
                 throw new RecoveryFailure;
             }
