@@ -7,11 +7,13 @@ use App\Models\User;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\URL;
 use Livewire\Livewire;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -23,13 +25,14 @@ class EmailVerificationTest extends TrackingTestCase
 
     private function link(User $user, array $parameters = []): string
     {
-        return CredentialUrls::generator()->temporarySignedRoute('verification.verify', now()->addHour(), $parameters + [
+        return CredentialUrls::origin().CredentialUrls::generator()->temporarySignedRoute('verification.verify', now()->addHour(), $parameters + [
             'id' => $user->id, 'hash' => sha1($user->email),
-        ]);
+        ], absolute: false);
     }
 
     public function test_registration_sends_an_expiring_signed_notification_without_accepting_a_verification_timestamp(): void
     {
+        $this->freezeTime();
         Notification::fake();
         $this->post('/register', ['name' => 'New owner', 'email' => 'verify@example.test',
             'password' => 'password', 'password_confirmation' => 'password', 'email_verified_at' => now()->toDateTimeString()])
@@ -115,6 +118,12 @@ class EmailVerificationTest extends TrackingTestCase
         };
         if ($kind === 'tampered') {
             $url .= 'tampered';
+        } elseif ($kind === 'tampered-path') {
+            $url = str_replace(sha1($owner->email), str_repeat('0', 40), $url);
+        } elseif ($kind === 'extra-query') {
+            $url .= '&extra=unsigned';
+        } elseif ($kind === 'missing-signature') {
+            $url = preg_replace('/&signature=[^&]+/', '', $url);
         } elseif ($kind === 'expired') {
             $this->travel(61)->minutes();
         } elseif ($kind === 'changed-email') {
@@ -129,7 +138,115 @@ class EmailVerificationTest extends TrackingTestCase
 
     public static function invalidLinks(): array
     {
-        return [['tampered'], ['expired'], ['wrong-id'], ['wrong-email'], ['changed-email']];
+        return [['tampered'], ['tampered-path'], ['extra-query'], ['missing-signature'],
+            ['expired'], ['wrong-id'], ['wrong-email'], ['changed-email']];
+    }
+
+    public function test_absolute_signature_scheme_mismatch_is_solved_by_relative_signing(): void
+    {
+        config(['app.url' => 'https://localhost']);
+        $parameters = ['id' => 123, 'hash' => sha1('synthetic@example.test')];
+        $absolute = CredentialUrls::generator()->temporarySignedRoute('verification.verify', now()->addHour(), $parameters);
+        $relative = CredentialUrls::generator()->temporarySignedRoute('verification.verify', now()->addHour(), $parameters, absolute: false);
+        Request::setTrustedProxies([], -1);
+        $backend = Request::create(preg_replace('/^https:/', 'http:', $absolute), server: [
+            'REMOTE_ADDR' => '192.0.2.10', 'HTTP_X_FORWARDED_PROTO' => 'https', 'HTTP_X_FORWARDED_PORT' => '443',
+        ]);
+
+        $this->assertFalse($backend->isSecure());
+        $this->assertTrue(URL::signatureHasNotExpired($backend));
+        $this->assertTrue(URL::hasValidSignature(Request::create($absolute)));
+        $this->assertFalse(URL::hasValidSignature($backend));
+        $this->assertTrue(URL::hasValidSignature(Request::create('http://localhost'.$relative), absolute: false));
+    }
+
+    #[DataProvider('proxyLinks')]
+    public function test_https_verification_through_a_proxy_with_or_without_trust(string $kind, bool $trusted, int $status): void
+    {
+        Event::fake([Verified::class]);
+        $owner = User::factory()->unverified()->create();
+        config(['app.url' => 'https://localhost', 'trustedproxy.proxies' => $trusted ? ['192.0.2.10'] : []]);
+        $this->app->instance('env', 'production');
+        $url = (new VerifyEmail)->toMail($owner)->actionUrl;
+        $this->assertSame('https', parse_url($url, PHP_URL_SCHEME));
+        if ($kind === 'expired') {
+            $this->travel(61)->minutes();
+        } elseif ($kind === 'tampered') {
+            $url .= 'tampered';
+        }
+
+        try {
+            $response = $this->actingAs($owner)
+                ->withServerVariables(['REMOTE_ADDR' => '192.0.2.10'])
+                ->withHeaders(['X-Forwarded-Proto' => 'https', 'X-Forwarded-Port' => '443',
+                    'X-Forwarded-Host' => 'ignored.example.test'])
+                ->get(preg_replace('/^https:/', 'http:', $url));
+            $response->assertStatus($status);
+            $this->assertSame($trusted, request()->isSecure());
+            $this->assertSame('localhost', request()->getHost());
+            if ($status === 302) {
+                $response->assertRedirect('/dashboard?verified=1');
+                $this->assertNotNull($owner->fresh()->email_verified_at);
+                Event::assertDispatchedTimes(Verified::class, 1);
+            } else {
+                $response->assertSee('This verification link is invalid or has expired.');
+                $this->assertNull($owner->fresh()->email_verified_at);
+                Event::assertNotDispatched(Verified::class);
+            }
+        } finally {
+            Request::setTrustedHosts([]);
+            Request::setTrustedProxies([], -1);
+        }
+    }
+
+    public static function proxyLinks(): array
+    {
+        return [['valid', true, 302], ['expired', true, 403], ['tampered', true, 403],
+            ['valid', false, 302], ['expired', false, 403], ['tampered', false, 403]];
+    }
+
+    #[DataProvider('wrongHosts')]
+    public function test_relative_verification_cannot_be_replayed_on_an_unapproved_host(string $host, bool $trusted): void
+    {
+        Event::fake([Verified::class]);
+        $owner = User::factory()->unverified()->create();
+        config(['app.url' => 'https://localhost', 'trustedproxy.proxies' => $trusted ? ['192.0.2.10'] : []]);
+        $this->app->instance('env', 'production');
+        $url = (new VerifyEmail)->toMail($owner)->actionUrl;
+        try {
+            $this->actingAs($owner)->withServerVariables(['REMOTE_ADDR' => '192.0.2.10'])
+                ->withHeaders(['X-Forwarded-Host' => 'localhost', 'X-Forwarded-Proto' => 'https'])
+                ->get(str_replace('https://localhost', 'http://'.$host, $url))->assertStatus(400);
+            $this->assertNull($owner->fresh()->email_verified_at);
+            Event::assertNotDispatched(Verified::class);
+        } finally {
+            Request::setTrustedHosts([]);
+            Request::setTrustedProxies([], -1);
+        }
+    }
+
+    public static function wrongHosts(): array
+    {
+        return [['attacker.example.test', false], ['child.localhost', false], ['attacker.example.test', true]];
+    }
+
+    public function test_old_absolute_registration_links_are_rejected_and_resend_uses_relative_signatures(): void
+    {
+        Notification::fake();
+        $owner = User::factory()->unverified()->create();
+        $old = CredentialUrls::generator()->temporarySignedRoute('verification.verify', now()->addHour(), [
+            'id' => $owner->id, 'hash' => sha1($owner->email),
+        ]);
+        $this->actingAs($owner)->get($old)->assertForbidden();
+        $this->assertNull($owner->fresh()->email_verified_at);
+        $this->post(route('verification.send'))->assertRedirect();
+        Notification::assertSentTo($owner, VerifyEmail::class, function ($notification) use ($owner) {
+            $url = $notification->toMail($owner)->actionUrl;
+            $this->assertTrue(URL::hasValidSignature(Request::create($url), absolute: false));
+            $this->get($url)->assertRedirect('/dashboard?verified=1');
+
+            return true;
+        });
     }
 
     public function test_guest_verification_requires_login_and_preserves_the_intended_signed_link(): void
