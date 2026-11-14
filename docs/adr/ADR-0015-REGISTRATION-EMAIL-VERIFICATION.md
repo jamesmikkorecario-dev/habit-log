@@ -2,6 +2,8 @@
 
 Status: accepted for the authorized registration-verification follow-up, 2026-11-14. Supersedes ADR-0009's registration-gate deferral without changing its verified email-change protocol.
 
+The absolute-signature and package-owned route-registration choices below are superseded by [ADR-0016](ADR-0016-RELATIVE-VERIFICATION-SIGNATURES.md), authorized to resolve the confirmed HTTPS/backend-HTTP scheme mismatch. All account, verification-gate and mutation safeguards remain in force.
+
 ## Decision
 
 Use Fortify's email-verification feature, native authenticated notice/resend/verification routes, Laravel `VerifyEmail` notification and `MustVerifyEmail` model contract. Links use the existing canonical `APP_URL` generator and native expiring absolute signatures (60 minutes by default). The route requires the authenticated owner ID and current email hash. Resending does not revoke earlier unexpired links; after verification, replay is idempotent and cannot change the verified timestamp or emit another verification event.

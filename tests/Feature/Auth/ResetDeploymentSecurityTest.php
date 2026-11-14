@@ -112,7 +112,7 @@ class ResetDeploymentSecurityTest extends TestCase
         $this->assertSame('approved.example.test', parse_url($verification, PHP_URL_HOST));
         $this->assertSame('https', parse_url($verification, PHP_URL_SCHEME));
         $this->assertSame(8443, parse_url($verification, PHP_URL_PORT));
-        $this->assertTrue(URL::hasValidSignature(Request::create($verification)));
+        $this->assertTrue(URL::hasValidSignature(Request::create($verification), absolute: false));
         [, $email] = app(EmailChanges::class)->request($user, ['current_password' => 'password', 'new_email' => 'proposed@example.test', 'generation' => 'none']);
         $this->assertSame('approved.example.test', parse_url($email, PHP_URL_HOST));
         $this->assertSame('https', parse_url($email, PHP_URL_SCHEME));
