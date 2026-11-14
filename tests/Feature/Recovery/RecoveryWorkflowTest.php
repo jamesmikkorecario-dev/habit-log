@@ -4,16 +4,21 @@ namespace Tests\Feature\Recovery;
 
 use App\Models\User;
 use App\Services\Recovery\BackupManager;
+use App\Services\Recovery\DatabaseSnapshot;
 use App\Services\Recovery\DeletionLedger;
+use App\Services\Recovery\EncryptedArchive;
 use App\Services\Recovery\RecoveryFailure;
 use App\Services\Recovery\RecoveryManager;
 use Illuminate\Database\QueryException;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\WithRecoveryStorage;
 use Tests\Fixtures\AccountDeletionData;
 use Tests\TestCase;
@@ -59,8 +64,18 @@ class RecoveryWorkflowTest extends TestCase
         Password::createToken($deleted);
         Password::createToken($survivor);
         DB::table('follows')->insert(['follower_id' => $survivor->id, 'followed_id' => $deleted->id, 'status' => 'accepted', 'requested_at' => now(), 'accepted_at' => now()]);
+        DB::table('cache')->insert(['key' => 'synthetic-cache-probe', 'value' => 'private-cache-payload-canary', 'expiration' => time() + 3600]);
+        DB::table('cache_locks')->insert(['key' => 'synthetic-lock-probe', 'owner' => 'private-lock-owner-canary', 'expiration' => time() + 3600]);
         $this->actingAs($deleted)->get('/settings/security')->assertOk();
         $id = app(BackupManager::class)->create();
+        $records = iterator_to_array(app(EncryptedArchive::class)->decrypt(app(BackupManager::class)->path($id)));
+        $archivedTables = array_column(array_filter($records, fn ($record) => $record['type'] === 'table'), 'name');
+        $this->assertNotContains('cache', $archivedTables);
+        $this->assertNotContains('cache_locks', $archivedTables);
+        $this->assertStringNotContainsString('private-cache-payload-canary', json_encode($records, JSON_THROW_ON_ERROR));
+        $this->assertStringNotContainsString('private-lock-owner-canary', json_encode($records, JSON_THROW_ON_ERROR));
+        $this->assertDatabaseCount('cache', 1);
+        $this->assertDatabaseCount('cache_locks', 1);
         $this->delete(route('settings.account.destroy'), ['account_id' => $deleted->id,
             'current_password' => 'password', 'acknowledge_deletion' => '1'])->assertRedirect(route('account.deleted'));
         $this->assertSame('committed', app(DeletionLedger::class)->snapshot()['deletions'][$deleted->recovery_uuid]);
@@ -73,7 +88,7 @@ class RecoveryWorkflowTest extends TestCase
             $this->assertDatabaseMissing($table, ['user_id' => $deleted->id]);
             $this->assertGreaterThan(0, DB::table($table)->where('user_id', $survivor->id)->count());
         }
-        foreach (['sessions', 'password_reset_tokens', 'pending_email_changes', 'session_revocations', 'follows'] as $table) {
+        foreach (['sessions', 'password_reset_tokens', 'pending_email_changes', 'session_revocations', 'follows', 'cache', 'cache_locks'] as $table) {
             $this->assertDatabaseCount($table, 0);
         }
         $this->assertDatabaseHas('recovery_state', ['status' => 'reconciled']);
@@ -87,6 +102,66 @@ class RecoveryWorkflowTest extends TestCase
         $this->get('/login')->assertOk();
         DB::setDefaultConnection('mysql');
         $this->get('/login')->assertStatus(503); // Superseded source cannot serve.
+    }
+
+    #[DataProvider('cacheTables')]
+    public function test_restore_refuses_populated_cache_tables_without_erasing_them(string $table): void
+    {
+        User::factory()->create();
+        $id = app(BackupManager::class)->create();
+        $this->target();
+        $row = ['key' => 'synthetic-existing-cache', 'expiration' => time() + 3600]
+            + ($table === 'cache' ? ['value' => 'preserved-cache-value'] : ['owner' => 'preserved-lock-owner']);
+        DB::table($table)->insert($row);
+
+        try {
+            app(RecoveryManager::class)->restore($id);
+            $this->fail('Populated cache target was accepted.');
+        } catch (RecoveryFailure) {
+            $this->assertDatabaseHas($table, $row);
+            $this->assertDatabaseCount('users', 0);
+            $this->assertDatabaseCount('recovery_state', 0);
+        }
+    }
+
+    #[DataProvider('cacheTables')]
+    public function test_cache_schema_changes_invalidate_the_restore_fingerprint(string $table): void
+    {
+        User::factory()->create();
+        $snapshot = app(DatabaseSnapshot::class);
+        $originalHash = $snapshot->schema(DB::connection())['hash'];
+        $id = app(BackupManager::class)->create();
+        $this->target();
+        $this->assertSame($originalHash, $snapshot->schema(DB::connection())['hash']);
+        Schema::table($table, fn (Blueprint $blueprint) => $blueprint->string('synthetic_extra_column')->nullable());
+        $this->assertNotSame($originalHash, $snapshot->schema(DB::connection())['hash']);
+
+        try {
+            app(RecoveryManager::class)->restore($id);
+            $this->fail('Mismatched cache schema was accepted.');
+        } catch (RecoveryFailure) {
+            $this->assertDatabaseCount('users', 0);
+            $this->assertDatabaseCount($table, 0);
+            $this->assertDatabaseCount('recovery_state', 0);
+        }
+    }
+
+    #[DataProvider('cacheTables')]
+    public function test_snapshot_import_rejects_transient_cache_table_records(string $table): void
+    {
+        $snapshot = app(DatabaseSnapshot::class);
+        $connection = DB::connection();
+        $schema = $snapshot->schema($connection);
+        $this->expectException(RecoveryFailure::class);
+        $snapshot->import([
+            ['type' => 'header', 'schema' => $schema['hash']],
+            ['type' => 'table', 'name' => $table],
+        ], $connection, $schema);
+    }
+
+    public static function cacheTables(): array
+    {
+        return [['cache'], ['cache_locks']];
     }
 
     public function test_retention_boundary_purges_only_registered_expired_artifacts(): void
@@ -146,9 +221,10 @@ class RecoveryWorkflowTest extends TestCase
         $this->assertDatabaseHas('users', ['id' => $user->id]);
     }
 
-    public function test_failed_snapshot_is_not_usable_and_outputs_no_private_diagnostics(): void
+    #[DataProvider('unknownTables')]
+    public function test_failed_snapshot_is_not_usable_and_outputs_no_private_diagnostics(string $table): void
     {
-        DB::statement('CREATE TABLE unsupported_backup_table (id INT PRIMARY KEY) ENGINE=InnoDB');
+        Schema::create($table, fn (Blueprint $blueprint) => $blueprint->id());
         try {
             $this->artisan('recovery:manage', ['operation' => 'backup', '--confirm-writers-stopped' => true])->assertExitCode(1);
             $this->assertSame([], glob($this->recoveryRoot.'/backups/*'));
@@ -156,8 +232,13 @@ class RecoveryWorkflowTest extends TestCase
             $this->assertCount(1, $records);
             $this->assertSame('writing', array_values($records)[0]['status']);
         } finally {
-            DB::statement('DROP TABLE unsupported_backup_table');
+            Schema::dropIfExists($table);
         }
+    }
+
+    public static function unknownTables(): array
+    {
+        return [['unsupported_backup_table'], ['cache_extra'], ['cache_locks_extra']];
     }
 
     public function test_restore_refuses_populated_target_missing_confirmation_and_unregistered_backup(): void
